@@ -44,6 +44,31 @@ button {
   .tap-shrink:active {
     transform: scale(0.94);
   }
+
+  /* 屏幕主容器最小高度：优先用动态视口高度，回退 100vh */
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* iOS 安全区内边距（刘海 / home indicator），仅在存在时生效 */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  /* 角落浮动元素：在安全区基础上再留一点空隙 */
+  .right-safe {
+    right: calc(env(safe-area-inset-right) + 0.5rem);
+  }
+  .bottom-safe {
+    bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
 }
 
 /* 尊重系统的减少动效设置 */

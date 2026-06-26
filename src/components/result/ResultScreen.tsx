@@ -25,7 +25,7 @@ export function ResultScreen({
   const level = resultLevel(result.accuracy)
 
   return (
-    <div className="relative mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 py-8 sm:px-6">
+    <div className="relative mx-auto flex min-h-screen-safe max-w-xl flex-col items-center justify-center px-4 py-8 sm:px-6 ipad-land:max-w-2xl ipad-land:py-4">
       <Celebration />
 
       <motion.div

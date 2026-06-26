@@ -69,7 +69,7 @@ export function QuestionCard({ question, entered, feedback }: QuestionCardProps)
       animate={cardAnim}
       transition={{ duration: feedback === 'wrong' ? 0.45 : 0.5 }}
       className={[
-        'relative flex w-full items-center justify-center gap-3 rounded-card bg-cream px-4 py-10 shadow-soft sm:gap-5 sm:py-16',
+        'relative flex w-full items-center justify-center gap-3 rounded-card bg-cream px-4 py-10 shadow-soft sm:gap-5 sm:py-16 ipad-land:py-8',
         feedback === 'correct'
           ? 'ring-4 ring-grass/50'
           : feedback === 'wrong'

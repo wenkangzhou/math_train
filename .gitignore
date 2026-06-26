@@ -11,6 +11,9 @@ dist
 dist-ssr
 *.local
 
+# 自查截图（Playwright 输出，不入库）
+screenshots
+
 # Editor
 .vscode/*
 !.vscode/extensions.json

@@ -129,38 +129,41 @@ export function SetupScreen({
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-5 px-4 pb-32 sm:px-6">
+    <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-5 px-4 pb-32 sm:px-6 ipad-land:max-w-4xl">
       <MascotHeader totalStars={totalStars} />
 
-      <SectionCard title="今天想练什么？" hint="可多选">
-        <RangeSelector selected={ranges} onToggle={toggleRange} />
-      </SectionCard>
+      {/* 选项卡片：横屏双列减少滚动 */}
+      <div className="grid gap-5 ipad-land:grid-cols-2 ipad-land:items-start">
+        <SectionCard title="今天想练什么？" hint="可多选">
+          <RangeSelector selected={ranges} onToggle={toggleRange} />
+        </SectionCard>
 
-      <SectionCard title="题目长什么样？" hint="可多选">
-        <PatternSelector
-          selected={patterns}
-          additionEnabled={hasAddition}
-          subtractionEnabled={hasSubtraction}
-          onToggle={togglePattern}
-        />
-      </SectionCard>
+        <SectionCard title="题目长什么样？" hint="可多选">
+          <PatternSelector
+            selected={patterns}
+            additionEnabled={hasAddition}
+            subtractionEnabled={hasSubtraction}
+            onToggle={togglePattern}
+          />
+        </SectionCard>
 
-      <SectionCard title="做几道题？">
-        <QuestionCountSelector value={count} onChange={setCount} />
-      </SectionCard>
+        <SectionCard title="做几道题？">
+          <QuestionCountSelector value={count} onChange={setCount} />
+        </SectionCard>
 
-      <SectionCard title="需要小帮手吗？">
-        <HintSettings
-          autoShowVisualHint={autoShowVisualHint}
-          showHintAfterWrongAnswer={showHintAfterWrong}
-          onChangeAutoShow={setAutoShow}
-          onChangeAfterWrong={setAfterWrong}
-        />
-      </SectionCard>
+        <SectionCard title="需要小帮手吗？">
+          <HintSettings
+            autoShowVisualHint={autoShowVisualHint}
+            showHintAfterWrongAnswer={showHintAfterWrong}
+            onChangeAutoShow={setAutoShow}
+            onChangeAfterWrong={setAfterWrong}
+          />
+        </SectionCard>
+      </div>
 
       {/* 底部固定开始按钮 */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-white/40 bg-gradient-to-t from-white/95 to-white/70 px-4 py-4 backdrop-blur sm:px-6">
-        <div className="mx-auto max-w-2xl">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-white/40 bg-gradient-to-t from-white/95 to-white/70 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:px-6">
+        <div className="mx-auto max-w-2xl ipad-land:max-w-4xl">
           {!canStart && (
             <p className="mb-2 text-center text-sm font-medium text-coral">
               请至少选择一个练习范围和对应的题型

@@ -92,7 +92,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="min-h-full w-full">
+    <div className="min-h-full w-full px-safe">
       <AnimatePresence mode="wait">
         {screen === 'setup' && (
           <motion.div

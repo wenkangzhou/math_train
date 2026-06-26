@@ -17,11 +17,19 @@
 
 ```bash
 pnpm install
-pnpm dev        # 本地开发，默认 http://localhost:5173
+pnpm dev        # 本地开发，默认 http://localhost:5173（已开启 --host，可局域网真机访问）
 pnpm test       # 运行题目生成器测试
 pnpm build      # 类型检查 + 生产构建
 pnpm preview    # 预览构建产物
+pnpm gen:icons  # 由 public/logo.png 生成 PWA / iOS 图标到 public/icons/
+pnpm shots [url]# Playwright 截 iPad 横竖屏布局图到 screenshots/（默认 http://localhost:4173）
 ```
+
+## iPad / PWA
+
+- **添加到主屏**：含 `manifest.webmanifest` 与 iOS `apple-mobile-web-app-*` meta，主屏图标名为「数数小火车」，全屏 standalone 运行。图标由 `pnpm gen:icons` 从 `public/logo.png` 生成（192/512/maskable + 180 apple-touch）。
+- **横竖屏适配**：竖屏纵向布局；横屏（`ipad-land` = 宽≥1024 且横向）练习页改两栏（左题目+提示、右键盘），设置页选项卡双列，均一屏可见、不溢出；处理了 `env(safe-area-inset-*)` 安全区与动态视口高度 `100dvh`。不锁屏。
+- **自查**：`pnpm build && pnpm preview` 后 `pnpm shots`，覆盖 iPad / iPad Pro 的竖屏与横屏。
 
 ## 功能
 

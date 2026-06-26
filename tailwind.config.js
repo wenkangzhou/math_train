@@ -3,6 +3,10 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      screens: {
+        // 精确命中平板横屏（避免按宽度误伤 12.9" 竖屏 1024px）
+        'ipad-land': { raw: '(min-width: 1024px) and (orientation: landscape)' },
+      },
       colors: {
         sky: {
           soft: '#bfe6ff',

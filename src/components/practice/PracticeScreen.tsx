@@ -213,7 +213,7 @@ export function PracticeScreen({
   if (!question) return null
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 pb-6 pt-4 sm:px-6">
+    <div className="mx-auto flex min-h-screen-safe max-w-3xl flex-col px-4 pb-6 pt-4 sm:px-6 ipad-land:max-w-5xl">
       <PracticeHeader
         current={currentNumber}
         total={total}
@@ -222,59 +222,62 @@ export function PracticeScreen({
         onBack={() => setShowExit(true)}
       />
 
-      {/* 题目区 */}
-      <div className="relative mt-4 flex flex-1 flex-col items-center justify-start gap-4">
-        <FeedbackOverlay state={feedback} message={feedbackMsg} />
+      {/* 内容区：竖屏纵向堆叠；横屏两栏（左题目+提示，右键盘） */}
+      <div className="mt-4 flex flex-1 flex-col gap-4 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(340px,420px)] ipad-land:items-center ipad-land:gap-8">
+        {/* 左：题目 + 提示 */}
+        <div className="relative flex w-full flex-1 flex-col items-center justify-start gap-4 ipad-land:flex-none ipad-land:justify-center">
+          <FeedbackOverlay state={feedback} message={feedbackMsg} />
 
-        <div className="w-full">
-          <QuestionCard question={question} entered={entered} feedback={feedback} />
+          <div className="w-full">
+            <QuestionCard question={question} entered={entered} feedback={feedback} />
+          </div>
+
+          {/* 提示按钮 + 提示区 */}
+          <div className="w-full">
+            {!showHint ? (
+              <button
+                type="button"
+                onClick={toggleHint}
+                className="mx-auto flex items-center gap-2 rounded-full bg-amber-100 px-5 py-2.5 text-base font-bold text-amber-600 shadow-soft transition hover:bg-amber-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
+              >
+                <Lightbulb size={20} fill="currentColor" /> 看看小提示
+              </button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="overflow-hidden"
+              >
+                <VisualHint question={question} level={hintLevel} />
+                {!settings.autoShowVisualHint && (
+                  <button
+                    type="button"
+                    onClick={() => setShowHint(false)}
+                    className="mx-auto mt-2 block text-sm font-medium text-slate-400 underline-offset-2 hover:underline"
+                  >
+                    收起提示
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </div>
         </div>
 
-        {/* 提示按钮 + 提示区 */}
-        <div className="w-full">
-          {!showHint ? (
-            <button
-              type="button"
-              onClick={toggleHint}
-              className="mx-auto flex items-center gap-2 rounded-full bg-amber-100 px-5 py-2.5 text-base font-bold text-amber-600 shadow-soft transition hover:bg-amber-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
-            >
-              <Lightbulb size={20} fill="currentColor" /> 看看小提示
-            </button>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="overflow-hidden"
-            >
-              <VisualHint question={question} level={hintLevel} />
-              {!settings.autoShowVisualHint && (
-                <button
-                  type="button"
-                  onClick={() => setShowHint(false)}
-                  className="mx-auto mt-2 block text-sm font-medium text-slate-400 underline-offset-2 hover:underline"
-                >
-                  收起提示
-                </button>
-              )}
-            </motion.div>
-          )}
+        {/* 右：数字键盘（横屏纵向居中贴右） */}
+        <div className="w-full ipad-land:flex ipad-land:w-auto ipad-land:flex-col ipad-land:justify-center">
+          <NumberPad
+            max={maxDigit}
+            entered={entered}
+            disabled={locked || feedback === 'correct'}
+            onPick={handlePick}
+            onClear={() => setEntered(null)}
+            onConfirm={handleConfirm}
+          />
         </div>
-      </div>
-
-      {/* 数字键盘 */}
-      <div className="mt-4">
-        <NumberPad
-          max={maxDigit}
-          entered={entered}
-          disabled={locked || feedback === 'correct'}
-          onPick={handlePick}
-          onClear={() => setEntered(null)}
-          onConfirm={handleConfirm}
-        />
       </div>
 
       {/* 角落吉祥物 */}
-      <div className="pointer-events-none fixed bottom-2 right-2 z-0 opacity-90 sm:bottom-4 sm:right-4">
+      <div className="pointer-events-none fixed bottom-safe right-safe z-0 opacity-90">
         <TrainMascot mood={mascotMood} size={56} />
       </div>
 

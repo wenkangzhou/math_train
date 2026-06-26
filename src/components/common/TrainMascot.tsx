@@ -7,69 +7,68 @@ interface TrainMascotProps {
   size?: number
 }
 
-// 数数小火车吉祥物：一辆友好的小火车（正式内联 SVG 插画）。
-// 保持 { mood, size } API 不变，方便练习页角落与结果页直接调用。
+// 数数小火车吉祥物：仿「托马斯小火车」的蓝色水柜机车（正式内联 SVG 插画）。
+// 保持 { mood, size } API 不变，练习页角落与结果页直接调用。
 const C = {
-  body: '#4fb0f0',
-  bodyDark: '#2b8fd6',
-  roof: '#ff8a65',
-  face: '#eaf6ff',
+  blue: '#2f8fd6',
+  blueDark: '#1f6cae',
+  face: '#cdd6dc',
+  faceEdge: '#a9b6bf',
+  ink: '#33424d',
+  red: '#e8503f',
+  yellow: '#ffd24d',
   window: '#bfe6ff',
-  wheel: '#37506b',
-  rim: '#bfe6ff',
   smoke: '#e3f1fb',
-  cheek: '#ff9db0',
-  eye: '#37506b',
-  star: '#ffd24d',
+  rim: '#9aa6ae',
 }
 
-// 根据心情绘制脸部（眼睛 + 嘴）
+// 托马斯式表情：白眼珠 + 黑瞳 + 眉毛 + 嘴，画在前烟箱大圆脸上
 function Face({ mood }: { mood: MascotMood }) {
-  const eyes =
-    mood === 'cheer' ? (
-      // 开心眯眼 ^_^
+  // 瞳孔朝向：thinking 看向右上
+  const px = mood === 'thinking' ? 0.8 : 0
+  const py = mood === 'thinking' ? -1.2 : mood === 'idle' ? 0.6 : 0
+
+  // 眉毛
+  const brows =
+    mood === 'happy' || mood === 'cheer' ? (
       <>
-        <path d="M11 52 q3 -3 6 0" fill="none" stroke={C.eye} strokeWidth="2.4" strokeLinecap="round" />
-        <path d="M23 52 q3 -3 6 0" fill="none" stroke={C.eye} strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M14.5 41.5 q3 -2.2 6 -0.6" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <path d="M25.5 40.9 q3 -1.6 6 0.6" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" fill="none" />
       </>
     ) : mood === 'thinking' ? (
-      // 向上看 + 眉毛
       <>
-        <circle cx="15" cy="52" r="2.3" fill={C.eye} />
-        <circle cx="26" cy="52" r="2.3" fill={C.eye} />
-        <circle cx="15.7" cy="51.2" r="0.7" fill="#fff" />
-        <circle cx="26.7" cy="51.2" r="0.7" fill="#fff" />
-        <path d="M11 47 q3.5 -1.5 7 0" fill="none" stroke={C.eye} strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M14 42 q3 -2.6 6 -1" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <path d="M25.5 39.5 q3 -0.4 6 1.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" fill="none" />
       </>
     ) : (
-      // 普通圆眼 + 高光
       <>
-        <circle cx="15" cy="54" r="2.6" fill={C.eye} />
-        <circle cx="26" cy="54" r="2.6" fill={C.eye} />
-        <circle cx="16" cy="53" r="0.9" fill="#fff" />
-        <circle cx="27" cy="53" r="0.9" fill="#fff" />
+        <path d="M14.5 42.5 h6" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M25.5 42.5 h6" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" />
       </>
     )
 
   const mouth =
     mood === 'cheer' ? (
-      <path d="M13 61 q7.5 9 15 0 z" fill="#ff6f6f" stroke={C.eye} strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M16 61 q9 10 18 0 q-9 4 -18 0 z" fill="#b23b30" stroke={C.ink} strokeWidth="1.2" strokeLinejoin="round" />
     ) : mood === 'happy' ? (
-      <path d="M12.5 60 q8 8 16 0" fill="none" stroke={C.eye} strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M16 60 q9 8 18 0" fill="none" stroke={C.ink} strokeWidth="2.4" strokeLinecap="round" />
     ) : mood === 'thinking' ? (
-      <circle cx="20.5" cy="62" r="1.8" fill="none" stroke={C.eye} strokeWidth="2" />
+      <path d="M20 62 q5 -2 9 0" fill="none" stroke={C.ink} strokeWidth="2.2" strokeLinecap="round" />
     ) : (
-      <path d="M14 61 q6.5 5 13 0" fill="none" stroke={C.eye} strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M18 61 q7 5 14 0" fill="none" stroke={C.ink} strokeWidth="2.2" strokeLinecap="round" />
     )
 
   return (
     <g>
-      {/* 脸盘 */}
-      <circle cx="20" cy="55" r="16" fill={C.face} stroke={C.body} strokeWidth="2.5" />
-      {/* 腮红 */}
-      <ellipse cx="10.5" cy="59" rx="3" ry="2.2" fill={C.cheek} opacity="0.75" />
-      <ellipse cx="30.5" cy="59" rx="3" ry="2.2" fill={C.cheek} opacity="0.75" />
-      {eyes}
+      {/* 烟箱圆脸 */}
+      <circle cx="25" cy="52" r="19" fill={C.face} stroke={C.faceEdge} strokeWidth="2.2" />
+      <circle cx="25" cy="52" r="19" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.6" />
+      {brows}
+      {/* 眼睛 */}
+      <ellipse cx="19" cy="49" rx="3.6" ry="4.6" fill="#fff" stroke={C.rim} strokeWidth="0.6" />
+      <ellipse cx="31" cy="49" rx="3.6" ry="4.6" fill="#fff" stroke={C.rim} strokeWidth="0.6" />
+      <circle cx={19 + px} cy={50 + py} r="1.9" fill={C.ink} />
+      <circle cx={31 + px} cy={50 + py} r="1.9" fill={C.ink} />
       {mouth}
     </g>
   )
@@ -78,9 +77,9 @@ function Face({ mood }: { mood: MascotMood }) {
 function Wheel({ cx, r }: { cx: number; r: number }) {
   return (
     <g>
-      <circle cx={cx} cy="80" r={r} fill={C.wheel} />
-      <circle cx={cx} cy="80" r={r * 0.55} fill={C.rim} />
-      <circle cx={cx} cy="80" r={r * 0.18} fill={C.wheel} />
+      <circle cx={cx} cy="80" r={r} fill={C.ink} />
+      <circle cx={cx} cy="80" r={r * 0.5} fill={C.red} />
+      <circle cx={cx} cy="80" r={r * 0.16} fill="#fff" />
     </g>
   )
 }
@@ -115,52 +114,56 @@ export function TrainMascot({ mood = 'idle', size = 88 }: TrainMascotProps) {
       >
         {/* 烟雾 */}
         {!reduce ? (
-          <g>
-            {[
-              { cx: 45, cy: 21, r: 3, d: 0 },
-              { cx: 42, cy: 14, r: 3.6, d: 0.3 },
-              { cx: 47, cy: 8, r: 4.2, d: 0.6 },
-            ].map((p, i) => (
-              <motion.circle
-                key={i}
-                cx={p.cx}
-                cy={p.cy}
-                r={p.r}
-                fill={C.smoke}
-                animate={{ y: [0, -6, -12], opacity: [0.9, 0.5, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, delay: p.d, ease: 'easeOut' }}
-              />
-            ))}
-          </g>
+          [
+            { cx: 50, cy: 20, r: 3, d: 0 },
+            { cx: 47, cy: 13, r: 3.6, d: 0.3 },
+            { cx: 52, cy: 7, r: 4.2, d: 0.6 },
+          ].map((p, i) => (
+            <motion.circle
+              key={i}
+              cx={p.cx}
+              cy={p.cy}
+              r={p.r}
+              fill={C.smoke}
+              animate={{ y: [0, -6, -12], opacity: [0.9, 0.5, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, delay: p.d, ease: 'easeOut' }}
+            />
+          ))
         ) : (
           <g>
-            <circle cx="45" cy="21" r="3" fill={C.smoke} />
-            <circle cx="42" cy="14" r="3.6" fill={C.smoke} opacity="0.7" />
-            <circle cx="47" cy="8" r="4.2" fill={C.smoke} opacity="0.45" />
+            <circle cx="50" cy="20" r="3" fill={C.smoke} />
+            <circle cx="47" cy="13" r="3.6" fill={C.smoke} opacity="0.7" />
+            <circle cx="52" cy="7" r="4.2" fill={C.smoke} opacity="0.45" />
           </g>
         )}
 
         {/* 烟囱 */}
-        <rect x="38" y="27" width="14" height="5" rx="2" fill={C.bodyDark} />
-        <rect x="40" y="30" width="10" height="14" rx="2" fill={C.bodyDark} />
+        <rect x="44" y="24" width="14" height="5" rx="2" fill={C.ink} />
+        <rect x="46" y="27" width="10" height="15" rx="2" fill={C.ink} />
+        {/* 蒸汽圆顶 */}
+        <ellipse cx="64" cy="38" rx="5.5" ry="5" fill={C.ink} />
 
         {/* 车厢（驾驶舱） */}
-        <rect x="60" y="24" width="31" height="7" rx="3" fill={C.roof} />
-        <rect x="63" y="30" width="25" height="39" rx="5" fill={C.body} />
-        <rect x="68" y="37" width="15" height="15" rx="4" fill={C.window} stroke="#fff" strokeWidth="2" />
+        <rect x="66" y="22" width="26" height="7" rx="3" fill={C.blueDark} />
+        <rect x="68" y="28" width="22" height="42" rx="5" fill={C.blue} />
+        <rect x="72" y="35" width="14" height="14" rx="3" fill={C.window} stroke="#fff" strokeWidth="2" />
 
-        {/* 锅炉主体 */}
-        <rect x="18" y="42" width="49" height="27" rx="13" fill={C.body} />
-        {/* 蒸汽圆顶 */}
-        <ellipse cx="58" cy="41" rx="5" ry="4.2" fill={C.roof} />
+        {/* 锅炉 / 水柜主体 */}
+        <rect x="16" y="40" width="58" height="30" rx="14" fill={C.blue} />
+        {/* 侧面编号 1 */}
+        <circle cx="55" cy="55" r="7" fill={C.yellow} stroke="#fff" strokeWidth="1.5" />
+        <text x="55" y="59.5" textAnchor="middle" fontSize="10" fontWeight="800" fill={C.red} fontFamily="'Baloo 2','PingFang SC',system-ui,sans-serif">1</text>
 
+        {/* 红色脚踏板 + 缓冲梁 */}
+        <rect x="10" y="66" width="80" height="7" rx="3" fill={C.red} />
+        <rect x="9" y="60" width="5" height="12" rx="2" fill={C.red} />
         {/* 底盘 */}
-        <rect x="10" y="67" width="84" height="8" rx="4" fill={C.bodyDark} />
+        <rect x="14" y="72" width="72" height="5" rx="2.5" fill={C.ink} />
 
         {/* 车轮 */}
         <Wheel cx={26} r={10} />
         <Wheel cx={52} r={9} />
-        <Wheel cx={80} r={7} />
+        <Wheel cx={78} r={7} />
 
         {/* 脸 */}
         <Face mood={mood} />
@@ -169,14 +172,14 @@ export function TrainMascot({ mood = 'idle', size = 88 }: TrainMascotProps) {
         {mood === 'cheer' && !reduce && (
           <g>
             {[
-              { x: 70, y: 16, s: 1 },
-              { x: 86, y: 40, s: 0.7 },
-              { x: 60, y: 8, s: 0.6 },
+              { x: 74, y: 14, s: 1 },
+              { x: 90, y: 38, s: 0.7 },
+              { x: 64, y: 7, s: 0.6 },
             ].map((p, i) => (
               <motion.path
                 key={i}
                 d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"
-                fill={C.star}
+                fill={C.yellow}
                 transform={`translate(${p.x} ${p.y}) scale(${p.s})`}
                 style={{ transformOrigin: 'center' }}
                 animate={{ scale: [0, 1, 0], rotate: [0, 90] }}
@@ -190,10 +193,10 @@ export function TrainMascot({ mood = 'idle', size = 88 }: TrainMascotProps) {
             {[0, 1, 2].map((i) => (
               <motion.circle
                 key={i}
-                cx={40 + i * 7}
-                cy={20}
+                cx={46 + i * 7}
+                cy={18}
                 r={2.2}
-                fill={C.bodyDark}
+                fill={C.blueDark}
                 animate={{ opacity: [0.2, 1, 0.2] }}
                 transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.25 }}
               />

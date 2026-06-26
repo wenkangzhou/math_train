@@ -18,9 +18,18 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  background: linear-gradient(180deg, #cdeeff 0%, #e8f7ff 45%, #eafbe7 100%);
   color: #2b3a4a;
   overscroll-behavior: none;
+  background-color: #e6f4ff;
+}
+
+/* 固定整屏单色背景层：滚动也不出现拼接缝，全局只有一种底色 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #d6edff 0%, #e9f6ff 60%, #eef9ff 100%);
 }
 
 /* 防止数字按钮等被长按选中文本 */

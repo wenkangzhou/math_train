@@ -222,10 +222,10 @@ export function PracticeScreen({
         onBack={() => setShowExit(true)}
       />
 
-      {/* 内容区：竖屏纵向堆叠；横屏两栏（左题目+提示，右键盘） */}
-      <div className="mt-4 flex flex-1 flex-col gap-4 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(340px,420px)] ipad-land:items-center ipad-land:gap-8">
+      {/* 内容区：竖屏纵向居中堆叠；横屏两栏（左题目+提示，右键盘） */}
+      <div className="mt-4 flex flex-1 flex-col justify-center gap-6 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(360px,440px)] ipad-land:items-center ipad-land:gap-8">
         {/* 左：题目 + 提示 */}
-        <div className="relative flex w-full flex-1 flex-col items-center justify-start gap-4 ipad-land:flex-none ipad-land:justify-center">
+        <div className="relative flex w-full flex-col items-center justify-center gap-4">
           <FeedbackOverlay state={feedback} message={feedbackMsg} />
 
           <div className="w-full">

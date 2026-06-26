@@ -25,16 +25,16 @@ export function ResultScreen({
   const level = resultLevel(result.accuracy)
 
   return (
-    <div className="relative mx-auto flex min-h-screen-safe max-w-xl flex-col items-center justify-center px-4 py-8 sm:px-6 ipad-land:max-w-2xl ipad-land:py-4">
+    <div className="relative mx-auto flex min-h-screen-safe max-w-xl flex-col items-center justify-center px-4 py-8 sm:px-6 sm:max-w-2xl ipad-land:max-w-3xl ipad-land:py-6">
       <Celebration />
 
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        className="z-10 flex w-full flex-col items-center gap-5 rounded-card bg-white/70 p-6 shadow-soft backdrop-blur sm:p-8"
+        className="z-10 flex w-full flex-col items-center gap-5 rounded-card bg-white/70 p-6 shadow-soft backdrop-blur sm:p-8 md:gap-6 md:p-10"
       >
-        <TrainMascot mood="cheer" size={96} />
+        <TrainMascot mood="cheer" size={120} />
 
         {/* 等级（始终正向） */}
         <div className="text-center">

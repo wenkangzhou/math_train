@@ -36,7 +36,7 @@ export function NumberPad({
               onClick={() => onPick(n)}
               aria-label={`数字 ${n}`}
               className={[
-                'flex aspect-square min-h-[56px] items-center justify-center rounded-2xl text-2xl font-extrabold transition sm:text-3xl',
+                'flex aspect-square min-h-[56px] items-center justify-center rounded-2xl text-2xl font-extrabold transition sm:text-3xl md:min-h-[64px] md:text-4xl ipad-land:min-h-[52px]',
                 'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
                 active
                   ? 'bg-sky text-white shadow-soft ring-4 ring-sky-deep'
@@ -50,14 +50,14 @@ export function NumberPad({
         })}
       </div>
 
-      <div className="mt-3 flex gap-3">
+      <div className="mt-3 flex gap-3 md:mt-4">
         <motion.button
           type="button"
           whileTap={{ scale: 0.95 }}
           onClick={onClear}
           disabled={disabled || entered === null}
           aria-label="清除"
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-slate-100 py-4 text-lg font-bold text-slate-500 ring-2 ring-slate-200 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:opacity-40"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-slate-100 py-4 text-lg font-bold text-slate-500 ring-2 ring-slate-200 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:opacity-40 md:py-6 md:text-2xl"
         >
           <Delete size={22} /> 清除
         </motion.button>
@@ -66,7 +66,7 @@ export function NumberPad({
           whileTap={{ scale: 0.95 }}
           onClick={onConfirm}
           disabled={disabled || entered === null}
-          className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-grass py-4 text-xl font-extrabold text-white shadow-soft transition hover:brightness-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-grass/60 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-grass py-4 text-xl font-extrabold text-white shadow-soft transition hover:brightness-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-grass/60 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-6 md:text-3xl"
         >
           <Check size={24} strokeWidth={3} /> 确定
         </motion.button>

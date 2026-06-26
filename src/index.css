@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(180deg, #cdeeff 0%, #e8f7ff 45%, #eafbe7 100%);
+  color: #2b3a4a;
+  overscroll-behavior: none;
+}
+
+/* 防止数字按钮等被长按选中文本 */
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* 圆润、粗壮的算式数字 */
+.font-digit {
+  font-family: 'Baloo 2', 'PingFang SC', system-ui, sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+@layer utilities {
+  .tap-shrink {
+    transition: transform 0.08s ease;
+  }
+  .tap-shrink:active {
+    transform: scale(0.94);
+  }
+}
+
+/* 尊重系统的减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

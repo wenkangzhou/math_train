@@ -1,0 +1,72 @@
+# 数数小火车 · Math Train
+
+面向 4～7 岁儿童的 **20 以内加减法练习** 网页。像一个轻量的数学小游戏：大按钮、大字号、可爱的小火车吉祥物、即时温和的反馈。
+
+纯前端单页应用，无需登录与后端，设置与练习记录保存在浏览器 `localStorage`。
+
+## 技术栈
+
+- React 18 + TypeScript
+- Vite 5
+- Tailwind CSS 3
+- Framer Motion（动效）
+- Lucide React（图标）
+- Vitest（题目生成器单元测试）
+
+## 启动
+
+```bash
+pnpm install
+pnpm dev        # 本地开发，默认 http://localhost:5173
+pnpm test       # 运行题目生成器测试
+pnpm build      # 类型检查 + 生产构建
+pnpm preview    # 预览构建产物
+```
+
+## 功能
+
+- **设置页**：四种练习范围多选（10/20 以内加/减）、六种题型多选（标准题 + 缺项题）、题量（5/10/20）、提示开关。题型会根据所选运算自动启用/置灰。
+- **做题页**：大号算式卡片、数字键盘（按范围显示 0~10 或 0~20）、进度条、星星与连对、可视化数量提示（六种题型各自布局，减法含「开走」动画）。支持键盘数字 / 退格 / 回车。
+- **结果页**：庆祝动画、正向评价等级、答对数 / 正确率 / 最长连对 / 提示次数、再练一次 / 练习错题 / 重新选择 / 回到首页。
+
+## 目录结构
+
+```
+src/
+├── App.tsx                  # 三屏状态机：setup / practice / result
+├── main.tsx
+├── index.css                # Tailwind + 全局样式（含 prefers-reduced-motion）
+├── types/
+│   └── math.ts              # 全部数据类型
+├── lib/
+│   ├── questionGenerator.ts # 题目生成（逻辑与 UI 分离）
+│   ├── questionGenerator.test.ts
+│   ├── questionValidator.ts # 答案校验 / 题目合法性
+│   ├── difficulty.ts        # 题型难度 + 结果等级
+│   ├── visualTheme.ts       # 提示素材（emoji，可替换为插画）
+│   ├── storage.ts           # localStorage 读写
+│   └── sound.ts             # 轻量合成音效（默认关闭）
+└── components/
+    ├── common/              # TrainMascot / SectionCard / ConfirmExitDialog
+    ├── setup/               # SetupScreen + 选择器
+    ├── practice/            # PracticeScreen + 题卡 / 键盘 / 提示 / 反馈
+    └── result/              # ResultScreen + 庆祝 / 统计 / 操作
+```
+
+## 部署（Vercel）
+
+推送到 GitHub 后在 Vercel 导入即可，框架预设选 **Vite**：
+
+- Build Command: `pnpm build`
+- Output Directory: `dist`
+
+仓库已含 `vercel.json`（SPA 重写）。
+
+## 题目生成规则要点
+
+- 不产生负数、不超出所选范围；先生成完整等式再「挖空」，保证等式始终成立。
+- 题型按权重分布：标准结果题 > 中间缺项题 > 前项缺失题；`? - b = c` 最难、出现频率最低。
+- 避免相邻两题完全相同的数字 + 题型组合；大概率跳过 `0 + n`、`n - 0` 等过于简单题。
+- 用户手动选择题型后以用户选择为准。
+
+测试覆盖六种题型各 1000 个样本的合法性，以及四个范围各 2000 个样本的边界条件。

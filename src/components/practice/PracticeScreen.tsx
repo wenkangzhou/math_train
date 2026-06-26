@@ -277,8 +277,8 @@ export function PracticeScreen({
       </div>
 
       {/* 角落吉祥物 */}
-      <div className="pointer-events-none fixed bottom-safe right-safe z-0 opacity-90">
-        <TrainMascot mood={mascotMood} size={56} />
+      <div className="pointer-events-none fixed bottom-safe right-safe z-0 origin-bottom-right scale-110 opacity-90 md:scale-150 ipad-land:scale-[1.7]">
+        <TrainMascot mood={mascotMood} size={96} />
       </div>
 
       <ConfirmExitDialog

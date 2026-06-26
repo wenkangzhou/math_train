@@ -104,7 +104,6 @@ export default function App() {
           >
             <SetupScreen
               initialSettings={settings}
-              totalStars={totalStars}
               onStart={handleStart}
             />
           </motion.div>

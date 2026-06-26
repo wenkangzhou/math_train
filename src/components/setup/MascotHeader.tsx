@@ -1,20 +1,8 @@
 import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
 
-interface MascotHeaderProps {
-  totalStars: number
-}
-
-export function MascotHeader({ totalStars }: MascotHeaderProps) {
+export function MascotHeader() {
   return (
     <header className="relative flex flex-col items-center pb-2 pt-6 text-center">
-      {totalStars > 0 && (
-        <div className="absolute right-0 top-4 flex items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 text-amber-500 shadow-soft">
-          <Star size={20} fill="currentColor" />
-          <span className="font-extrabold">{totalStars}</span>
-        </div>
-      )}
-
       {/* 品牌 LOGO（已含小火车与「数数小火车」字样），轻微漂浮动画 */}
       <h1 className="sr-only">数数小火车 · Math Train</h1>
       <motion.img

@@ -20,7 +20,6 @@ import { SectionCard } from '@/components/common/SectionCard'
 
 interface SetupScreenProps {
   initialSettings: PracticeSettings
-  totalStars: number
   onStart: (settings: PracticeSettings) => void
 }
 
@@ -30,7 +29,6 @@ function isAddition(range: RangeType) {
 
 export function SetupScreen({
   initialSettings,
-  totalStars,
   onStart,
 }: SetupScreenProps) {
   const [ranges, setRanges] = useState<RangeType[]>(
@@ -130,7 +128,7 @@ export function SetupScreen({
 
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-5 px-4 pb-32 sm:px-6 ipad-land:max-w-4xl">
-      <MascotHeader totalStars={totalStars} />
+      <MascotHeader />
 
       {/* 选项卡片：横屏双列减少滚动 */}
       <div className="grid gap-5 ipad-land:grid-cols-2 ipad-land:items-start">

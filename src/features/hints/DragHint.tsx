@@ -138,7 +138,7 @@ function DraggableItem({
       role="button"
       tabIndex={0}
       aria-label="拖一拖"
-      className="inline-flex h-12 w-12 cursor-grab touch-none select-none items-center justify-center text-3xl active:cursor-grabbing sm:h-14 sm:w-14 sm:text-4xl"
+      className="inline-flex h-12 w-12 cursor-grab touch-none select-none items-center justify-center text-3xl active:cursor-grabbing sm:h-14 sm:w-14 sm:text-4xl ipad-land:h-10 ipad-land:w-10 ipad-land:text-2xl"
     >
       {emoji}
     </motion.div>
@@ -153,7 +153,7 @@ function StaticItem({ emoji, faded }: { emoji: string; faded?: boolean }) {
       animate={{ scale: 1 }}
       transition={{ type: 'spring', stiffness: 320, damping: 18 }}
       className={[
-        'inline-flex h-12 w-12 items-center justify-center text-3xl sm:h-14 sm:w-14 sm:text-4xl',
+        'inline-flex h-12 w-12 items-center justify-center text-3xl sm:h-14 sm:w-14 sm:text-4xl ipad-land:h-10 ipad-land:w-10 ipad-land:text-2xl',
         faded ? 'opacity-40 grayscale' : '',
       ].join(' ')}
     >
@@ -164,12 +164,12 @@ function StaticItem({ emoji, faded }: { emoji: string; faded?: boolean }) {
 
 function Ghost() {
   return (
-    <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white/40 sm:h-14 sm:w-14" />
+    <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white/40 sm:h-14 sm:w-14 ipad-land:h-10 ipad-land:w-10" />
   )
 }
 
 const tray =
-  'flex min-h-[68px] flex-wrap items-center justify-center gap-1 rounded-2xl p-2 sm:min-h-[76px]'
+  'flex min-h-[68px] flex-wrap items-center justify-center gap-1 rounded-2xl p-2 sm:min-h-[76px] ipad-land:min-h-[54px] ipad-land:p-1'
 
 export function DragHint({ question }: DragHintProps) {
   const emoji = themeEmoji(question.visualTheme)
@@ -205,7 +205,7 @@ export function DragHint({ question }: DragHintProps) {
   // —— 三种布局 ——
   if (sc.mode === 'takeaway') {
     return (
-      <div className="rounded-card bg-white/85 p-4 shadow-soft">
+      <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
           {/* 这里（可拖走） */}
           <div>
@@ -227,14 +227,14 @@ export function DragHint({ question }: DragHintProps) {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg">{caption}</p>
+        <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">{caption}</p>
       </div>
     )
   }
 
   // combine / fill 共享：上方目标区 + 下方来源区
   return (
-    <div className="rounded-card bg-white/85 p-4 shadow-soft">
+    <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
       {/* 目标区 */}
       <p className="mb-1 text-center text-sm font-semibold text-grass">
         {sc.mode === 'fill' ? `目标 ${sc.total} 个` : '合起来'}
@@ -256,7 +256,7 @@ export function DragHint({ question }: DragHintProps) {
       </div>
 
       {/* 来源区 */}
-      <p className="mb-1 mt-3 text-center text-sm font-semibold text-slate-500">
+      <p className="mb-1 mt-3 text-center text-sm font-semibold text-slate-500 ipad-land:mt-2">
         待加入（还剩 {remaining} 个）
       </p>
       <div className={`${tray} bg-sky-soft/30`}>
@@ -268,7 +268,7 @@ export function DragHint({ question }: DragHintProps) {
         )}
       </div>
 
-      <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg">{caption}</p>
+      <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">{caption}</p>
     </div>
   )
 }

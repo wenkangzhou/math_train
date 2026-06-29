@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { PracticeResult } from '@/types/math'
+import type { Carriage } from '@/types/rewards'
 import { resultLevel } from '@/lib/difficulty'
 import { Star } from 'lucide-react'
 import { TrainMascot } from '@/components/common/TrainMascot'
@@ -10,6 +11,7 @@ import { ResultActions } from './ResultActions'
 interface ResultScreenProps {
   result: PracticeResult
   totalStars: number
+  newlyUnlocked: Carriage[]
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
@@ -18,6 +20,7 @@ interface ResultScreenProps {
 export function ResultScreen({
   result,
   totalStars,
+  newlyUnlocked,
   onReplay,
   onPracticeWrong,
   onReconfigure,
@@ -64,6 +67,24 @@ export function ResultScreen({
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
+          {newlyUnlocked.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.35, type: 'spring', stiffness: 220 }}
+              className="rounded-[24px] bg-gradient-to-r from-amber-100 to-orange-100 p-4 text-center ring-2 ring-amber-300"
+            >
+              <p className="text-sm font-extrabold text-amber-700">🎉 新车厢解锁！</p>
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+                {newlyUnlocked.map((item) => (
+                  <span key={item.id} className="rounded-2xl bg-white/80 px-4 py-2 text-base font-extrabold text-slate-700 shadow-sm">
+                    <span className="mr-1 text-2xl">{item.emoji}</span> {item.name}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           <ResultSummary result={result} />
 
           <ResultActions

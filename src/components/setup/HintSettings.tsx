@@ -42,18 +42,22 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 interface HintSettingsProps {
   autoShowVisualHint: boolean
   showHintAfterWrongAnswer: boolean
+  soundEnabled: boolean
   onChangeAutoShow: (value: boolean) => void
   onChangeAfterWrong: (value: boolean) => void
+  onChangeSound: (value: boolean) => void
 }
 
 export function HintSettings({
   autoShowVisualHint,
   showHintAfterWrongAnswer,
+  soundEnabled,
   onChangeAutoShow,
   onChangeAfterWrong,
+  onChangeSound,
 }: HintSettingsProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-3">
       <ToggleRow
         label="自动显示图片提示"
         description="每道题自动显示数量图片"
@@ -65,6 +69,12 @@ export function HintSettings({
         description="答错时自动展开小提示"
         checked={showHintAfterWrongAnswer}
         onChange={onChangeAfterWrong}
+      />
+      <ToggleRow
+        label="答题反馈音效"
+        description="答对和答错时播放不同提示音"
+        checked={soundEnabled}
+        onChange={onChangeSound}
       />
     </div>
   )

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   BookOpen,
   ChevronRight,
@@ -9,6 +9,7 @@ import {
   Star,
   Target,
   Trophy,
+  TrainFront,
 } from 'lucide-react'
 import type {
   PracticeSettings,
@@ -19,6 +20,8 @@ import type {
   SkillTag,
   StoredHistory,
 } from '@/types/math'
+import type { RewardState } from '@/types/rewards'
+import type { WrongQuestionRecord } from '@/types/storage'
 import {
   ADDITION_PATTERNS,
   SUBTRACTION_PATTERNS,
@@ -31,18 +34,24 @@ import { HintSettings } from './HintSettings'
 import { AdvancedSettingsDrawer } from './AdvancedSettingsDrawer'
 import { SectionCard } from '@/components/common/SectionCard'
 import { TrainMascot } from '@/components/common/TrainMascot'
+import { RewardDrawer } from '@/components/rewards/RewardDrawer'
+import { WrongBookDrawer } from '@/components/wrongBook/WrongBookDrawer'
 
 export type StartSettings = PracticeSettings & {
   questionFormats: QuestionFormat[]
   skillTags: SkillTag[]
+  soundEnabled: boolean
 }
 
 interface SetupScreenProps {
   initialSettings: PracticeSettings &
-    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags'>>
+    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled'>>
   history: StoredHistory
+  reward: RewardState
+  wrongRecords: WrongQuestionRecord[]
   onStart: (settings: StartSettings) => void
   onPracticeWrong: () => void
+  onSelectHead: (id: string) => void
 }
 
 const FORMAT_OPTIONS: { id: QuestionFormat; label: string; emoji: string }[] = [
@@ -58,9 +67,13 @@ function isAddition(range: RangeType) {
 export function SetupScreen({
   initialSettings,
   history,
+  reward,
+  wrongRecords,
   onStart,
   onPracticeWrong,
+  onSelectHead,
 }: SetupScreenProps) {
+  const reduceMotion = useReducedMotion()
   const [ranges, setRanges] = useState<RangeType[]>(
     initialSettings.selectedRanges,
   )
@@ -82,7 +95,12 @@ export function SetupScreen({
   const [skillTags, setSkillTags] = useState<SkillTag[]>(
     initialSettings.skillTags ?? [],
   )
+  const [soundEnabled, setSoundEnabled] = useState(
+    initialSettings.soundEnabled ?? true,
+  )
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [rewardOpen, setRewardOpen] = useState(false)
+  const [wrongBookOpen, setWrongBookOpen] = useState(false)
 
   const toggleFormat = (f: QuestionFormat) => {
     setFormats((prev) => {
@@ -178,6 +196,7 @@ export function SetupScreen({
       showHintAfterWrongAnswer: showHintAfterWrong,
       questionFormats: formats,
       skillTags,
+      soundEnabled,
     })
   }
 
@@ -194,6 +213,7 @@ export function SetupScreen({
     .reduce((sum, entry) => sum + entry.total, 0)
   const dailyTarget = 10
   const dailyProgress = Math.min(100, (todayQuestions / dailyTarget) * 100)
+  const pendingWrongCount = wrongRecords.filter((item) => !item.mastered).length
 
   const rangeSummary = ranges.length === 0
     ? '还没选择范围'
@@ -202,7 +222,7 @@ export function SetupScreen({
       : `${ranges.length} 个范围`
 
   const startButtonClass = [
-    'flex w-full items-center justify-center gap-3 rounded-full py-4 text-xl font-extrabold text-white shadow-[0_12px_28px_-12px_rgba(255,138,101,0.8)] transition',
+    'flex min-h-16 w-full items-center justify-center gap-3 rounded-full py-4 text-xl font-extrabold text-white shadow-[0_12px_28px_-12px_rgba(255,138,101,0.8)] transition',
     'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
     canStart
       ? 'bg-gradient-to-r from-coral via-orange-400 to-amber-400 hover:-translate-y-0.5 hover:brightness-105'
@@ -257,40 +277,85 @@ export function SetupScreen({
             </p>
           </div>
 
-          <div className="relative mt-3 grid grid-cols-3 gap-2">
-            <Metric icon={<Star size={17} fill="currentColor" />} value={history.totalStars} label="星星" />
-            <Metric icon={<Trophy size={17} />} value={totalQuestions} label="已练题" />
-            <Metric icon={<Clock3 size={17} />} value={latestAccuracy === null ? '—' : `${latestAccuracy}%`} label="上次" />
-          </div>
-
-          <div className="relative mt-5 hidden ipad-land:mt-auto ipad-land:block ipad-land:pt-5">
-            <p className="mb-3 text-center text-sm font-semibold text-white/80">
-              本次 · {rangeSummary} · {count} 题
-            </p>
+          {/* 横屏主操作紧跟今日任务，确保孩子第一眼就能找到。 */}
+          <div className="relative mt-4 hidden ipad-land:block">
             {!canStart && (
               <p className="mb-2 text-center text-sm font-bold text-yellow-100">
                 请先选择练习范围和对应题型
               </p>
             )}
+            <motion.div
+              className="absolute inset-1 rounded-[28px] bg-amber-300/70 blur-xl"
+              animate={canStart && !reduceMotion ? { opacity: [0.4, 0.85, 0.4] } : { opacity: 0.4 }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            />
             <motion.button
               type="button"
               disabled={!canStart}
               whileTap={canStart ? { scale: 0.96 } : undefined}
+              animate={canStart && !reduceMotion ? { scale: [1, 1.018, 1] } : undefined}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               onClick={handleStart}
-              className={startButtonClass}
+              className={[
+                'relative flex min-h-[82px] w-full items-center gap-3 rounded-[26px] px-4 text-left shadow-[0_16px_34px_-14px_rgba(251,146,60,0.95)] ring-4 ring-white/35 transition focus:outline-none focus-visible:ring-white',
+                canStart
+                  ? 'bg-gradient-to-r from-coral via-orange-400 to-amber-300 text-white'
+                  : 'cursor-not-allowed bg-slate-300 text-white/80',
+              ].join(' ')}
             >
-              <Rocket size={25} /> 开始练习
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-coral shadow-md">
+                <Rocket size={27} strokeWidth={2.7} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-2xl font-extrabold leading-none">开始做题</span>
+                <span className="mt-1.5 block whitespace-nowrap text-xs font-bold text-white/85">
+                  点这里发车 · {rangeSummary} · {count} 题
+                </span>
+              </span>
             </motion.button>
-            {history.lastWrongQuestions.length > 0 && (
-              <button
-                type="button"
-                onClick={onPracticeWrong}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-white/15 py-3 text-base font-bold text-white ring-1 ring-white/25 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
-              >
-                <BookOpen size={19} /> 错题加练 · {history.lastWrongQuestions.length} 题
-              </button>
-            )}
           </div>
+
+          <div className="relative mt-3 grid grid-cols-3 gap-2">
+            <Metric icon={<Star size={17} fill="currentColor" />} value={reward.stars} label="星星" />
+            <Metric icon={<Trophy size={17} />} value={totalQuestions} label="已练题" />
+            <Metric icon={<Clock3 size={17} />} value={latestAccuracy === null ? '—' : `${latestAccuracy}%`} label="上次" />
+          </div>
+
+          <div className="relative mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              data-testid="open-rewards"
+              onClick={() => setRewardOpen(true)}
+              className="flex min-h-[60px] min-w-0 items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-300 text-amber-800">
+                <TrainFront size={19} />
+              </span>
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">我的小火车</span>
+                <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
+                  已解锁 {reward.unlockedCarriages.length} 节
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-testid="open-wrongbook"
+              onClick={() => setWrongBookOpen(true)}
+              className="flex min-h-[60px] min-w-0 items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-coral text-white">
+                <BookOpen size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">长期错题本</span>
+                <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
+                  待巩固 {pendingWrongCount} 题
+                </span>
+              </span>
+            </button>
+          </div>
+
         </aside>
 
         <main className="grid content-start gap-3 ipad-land:min-h-0 ipad-land:overflow-y-auto ipad-land:pr-1">
@@ -342,8 +407,10 @@ export function SetupScreen({
             <HintSettings
               autoShowVisualHint={autoShowVisualHint}
               showHintAfterWrongAnswer={showHintAfterWrong}
+              soundEnabled={soundEnabled}
               onChangeAutoShow={setAutoShow}
               onChangeAfterWrong={setAfterWrong}
+              onChangeSound={setSoundEnabled}
             />
           </SectionCard>
 
@@ -376,6 +443,20 @@ export function SetupScreen({
         onClear={() => setSkillTags([])}
       />
 
+      <RewardDrawer
+        open={rewardOpen}
+        reward={reward}
+        onClose={() => setRewardOpen(false)}
+        onSelectHead={onSelectHead}
+      />
+
+      <WrongBookDrawer
+        open={wrongBookOpen}
+        records={wrongRecords}
+        onClose={() => setWrongBookOpen(false)}
+        onPracticePending={onPracticeWrong}
+      />
+
       {/* 手机 / 竖屏使用底部主操作，横屏则放在任务总览中。 */}
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#e9f6ff] via-[#e9f6ff]/95 to-transparent px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-8 sm:px-6 ipad-land:hidden">
         <div className="mx-auto max-w-2xl">
@@ -392,17 +473,8 @@ export function SetupScreen({
             className={startButtonClass}
           >
             <Rocket size={25} />
-            开始练习
+            开始做题
           </motion.button>
-          {history.lastWrongQuestions.length > 0 && (
-            <button
-              type="button"
-              onClick={onPracticeWrong}
-              className="mt-2 flex w-full items-center justify-center gap-2 py-1 text-sm font-bold text-sky-deep"
-            >
-              <BookOpen size={17} /> 错题加练 · {history.lastWrongQuestions.length} 题
-            </button>
-          )}
         </div>
       </div>
     </div>

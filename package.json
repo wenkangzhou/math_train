@@ -6,7 +6,7 @@
   "description": "数数小火车 / Math Train — 20 以内加减法练习",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/build-sw.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

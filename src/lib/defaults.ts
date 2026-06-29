@@ -4,7 +4,10 @@ import type { ProfileSettings, ChildProfile, AvatarId } from '@/types/profile'
 import type { RewardState } from '@/types/rewards'
 import type { DailyProgress } from '@/types/storage'
 import { DEFAULT_SETTINGS } from './storage'
-import { DEFAULT_HEAD_ID, INITIAL_CARRIAGE_IDS } from './carriages'
+import {
+  DEFAULT_HEAD_ID,
+  carriagesUnlockedByStars,
+} from './carriages'
 import { genId } from './id'
 import { todayStr } from './date'
 
@@ -20,7 +23,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   autoReadQuestion: false,
   autoReadFeedback: false,
   speechRate: 'normal',
-  soundEnabled: false,
+  soundEnabled: true,
   animationLevel: 'standard',
   adaptiveDifficulty: false,
   allowHarder: false,
@@ -28,13 +31,14 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
 }
 
 export function createDefaultRewardState(initialStars = 0): RewardState {
+  const unlocked = carriagesUnlockedByStars(initialStars)
   return {
     coins: 0,
     stars: initialStars,
     stickers: [],
-    unlockedCarriages: [...INITIAL_CARRIAGE_IDS],
+    unlockedCarriages: unlocked,
     selectedHead: DEFAULT_HEAD_ID,
-    trainOrder: [...INITIAL_CARRIAGE_IDS],
+    trainOrder: unlocked,
     streak: { current: 0, longest: 0, lastActiveDate: '' },
   }
 }

@@ -6,7 +6,13 @@
 //  - v1 的 storage.ts 暂保留，运行中的旧入口仍可用；第二版组件改用本模块。
 
 import type { ChildProfile, ProfileSettings } from '@/types/profile'
+import type {
+  PracticeResult,
+  PracticeSettings,
+  Question,
+} from '@/types/math'
 import type { RewardState } from '@/types/rewards'
+import type { Carriage } from '@/types/rewards'
 import type {
   AppStorage,
   DailyProgress,
@@ -24,6 +30,9 @@ import {
   V1_HISTORY_KEY,
   V1_SETTINGS_KEY,
 } from './migrations'
+import { carriagesUnlockedByStars, getCarriage } from './carriages'
+import { dayDiff, todayStr } from './date'
+import { genId } from './id'
 
 function hasLS(): boolean {
   return typeof localStorage !== 'undefined'
@@ -107,10 +116,34 @@ export function normalizeAppStorage(raw: unknown): AppStorage {
     out.wrongQuestionsByProfile[p.id] = asArray<WrongQuestionRecord>(
       wrongByProfile[p.id],
     )
+    const defaultReward = createDefaultRewardState(0)
+    const savedReward = rewardsByProfile[p.id] ?? defaultReward
     out.rewardsByProfile[p.id] = {
-      ...createDefaultRewardState(0),
-      ...(rewardsByProfile[p.id] ?? {}),
+      ...defaultReward,
+      ...savedReward,
+      stars: Number.isFinite(savedReward.stars)
+        ? Math.max(0, savedReward.stars)
+        : 0,
+      coins: Number.isFinite(savedReward.coins)
+        ? Math.max(0, savedReward.coins)
+        : 0,
+      streak: {
+        ...defaultReward.streak,
+        ...(savedReward.streak ?? {}),
+      },
     }
+    // 星星数是奖励解锁的事实来源；修复旧数据中星星足够但车厢未补齐的情况。
+    const unlocked = carriagesUnlockedByStars(out.rewardsByProfile[p.id].stars)
+    out.rewardsByProfile[p.id].unlockedCarriages = unlocked
+    const savedOrder = Array.isArray(out.rewardsByProfile[p.id].trainOrder)
+      ? out.rewardsByProfile[p.id].trainOrder
+      : []
+    out.rewardsByProfile[p.id].trainOrder = [
+      ...new Set([
+        ...savedOrder,
+        ...unlocked,
+      ]),
+    ].filter((id) => unlocked.includes(id))
     if (dailyByProfile[p.id]) {
       out.dailyProgressByProfile[p.id] = dailyByProfile[p.id]
     }
@@ -248,5 +281,189 @@ export function saveProfileSettings(
 ): AppStorage {
   return updateAppStorage((s) => {
     s.settingsByProfile[profileId] = settings
+  })
+}
+
+// ---------------------------------------------------------------------------
+// 练习结算：历史、奖励、连续练习、长期错题本
+// ---------------------------------------------------------------------------
+
+export function questionSignature(q: Question): string {
+  return `${q.fullLeft}|${q.operation}|${q.fullRight}|${q.fullResult}|${q.pattern}`
+}
+
+export interface LearningResultParams {
+  profileId: string
+  settings: PracticeSettings
+  result: PracticeResult
+}
+
+export interface LearningResultUpdate {
+  storage: AppStorage
+  newlyUnlocked: Carriage[]
+}
+
+// 纯数据更新，便于单测；会原地更新传入的 storage。
+export function applyLearningResult(
+  storage: AppStorage,
+  { profileId, settings, result }: LearningResultParams,
+): Carriage[] {
+  const now = new Date()
+  const nowIso = now.toISOString()
+  const totalDuration = result.records.reduce(
+    (sum, record) => sum + record.durationMs,
+    0,
+  )
+
+  const history = storage.historyByProfile[profileId] ?? []
+  history.unshift({
+    id: genId('hist'),
+    profileId,
+    startedAt: new Date(now.getTime() - totalDuration).toISOString(),
+    completedAt: nowIso,
+    settings,
+    totalQuestions: result.total,
+    correctQuestions: result.correctCount,
+    accuracy: result.accuracy,
+    totalAttempts: result.records.reduce(
+      (sum, record) => sum + record.attempts,
+      0,
+    ),
+    hintCount: result.hintsUsed,
+    averageDurationMs:
+      result.total > 0 ? Math.round(totalDuration / result.total) : 0,
+    bestStreak: result.bestStreak,
+    earnedStars: result.stars,
+    difficultyStart: storage.profiles.find((p) => p.id === profileId)?.currentLevel ?? '',
+    difficultyEnd: storage.profiles.find((p) => p.id === profileId)?.currentLevel ?? '',
+  })
+  storage.historyByProfile[profileId] = history.slice(0, 200)
+
+  const reward = storage.rewardsByProfile[profileId] ?? createDefaultRewardState(0)
+  const beforeUnlocked = new Set(reward.unlockedCarriages)
+  reward.stars += result.stars
+  reward.coins += result.stars
+  reward.unlockedCarriages = carriagesUnlockedByStars(reward.stars)
+  reward.trainOrder = [
+    ...new Set([...reward.trainOrder, ...reward.unlockedCarriages]),
+  ].filter((id) => reward.unlockedCarriages.includes(id))
+
+  const today = todayStr()
+  if (reward.streak.lastActiveDate !== today) {
+    reward.streak.current = reward.streak.lastActiveDate &&
+      dayDiff(reward.streak.lastActiveDate, today) === 1
+      ? reward.streak.current + 1
+      : 1
+    reward.streak.longest = Math.max(
+      reward.streak.longest,
+      reward.streak.current,
+    )
+    reward.streak.lastActiveDate = today
+  }
+  storage.rewardsByProfile[profileId] = reward
+
+  const daily = storage.dailyProgressByProfile[profileId]
+  const currentDaily = daily?.date === today
+    ? daily
+    : {
+        date: today,
+        completed: false,
+        targetQuestions: 10,
+        doneQuestions: 0,
+        earnedStars: 0,
+      }
+  currentDaily.doneQuestions += result.total
+  currentDaily.earnedStars += result.stars
+  currentDaily.completed = currentDaily.doneQuestions >= currentDaily.targetQuestions
+  storage.dailyProgressByProfile[profileId] = currentDaily
+
+  const recordsById = new Map(
+    result.records.map((record) => [record.questionId, record]),
+  )
+  const wrongBook = storage.wrongQuestionsByProfile[profileId] ?? []
+
+  for (const question of result.questions) {
+    const answerRecord = recordsById.get(question.id)
+    if (!answerRecord) continue
+    const signature = questionSignature(question)
+    const existing = wrongBook.find(
+      (item) =>
+        item.question.id === question.id ||
+        questionSignature(item.question) === signature,
+    )
+
+    if (answerRecord.isCorrect) {
+      if (existing) {
+        existing.correctCountAfterWrong += 1
+        existing.mastered = existing.correctCountAfterWrong >= 2
+        existing.lastPracticedAt = nowIso
+      }
+      continue
+    }
+
+    if (existing) {
+      existing.question = question
+      existing.wrongAnswers = [
+        ...existing.wrongAnswers,
+        ...(answerRecord.wrongAnswers ?? []),
+      ].slice(-8)
+      existing.attempts += answerRecord.attempts
+      existing.usedHint ||= answerRecord.usedHint
+      existing.lastPracticedAt = nowIso
+      existing.correctCountAfterWrong = 0
+      existing.mastered = false
+    } else {
+      wrongBook.unshift({
+        id: genId('wrong'),
+        question,
+        wrongAnswers: answerRecord.wrongAnswers ?? [],
+        attempts: answerRecord.attempts,
+        usedHint: answerRecord.usedHint,
+        createdAt: nowIso,
+        lastPracticedAt: nowIso,
+        correctCountAfterWrong: 0,
+        mastered: false,
+      })
+    }
+  }
+  storage.wrongQuestionsByProfile[profileId] = wrongBook.slice(0, 200)
+
+  return reward.unlockedCarriages
+    .filter((id) => !beforeUnlocked.has(id))
+    .map(getCarriage)
+    .filter((item): item is Carriage => Boolean(item))
+}
+
+export function recordLearningResult(
+  params: LearningResultParams,
+): LearningResultUpdate {
+  const storage = loadAppStorage()
+  const newlyUnlocked = applyLearningResult(storage, params)
+  saveAppStorage(storage)
+  return { storage, newlyUnlocked }
+}
+
+export function clearMasteredWrongQuestions(profileId: string): AppStorage {
+  return updateAppStorage((storage) => {
+    storage.wrongQuestionsByProfile[profileId] = (
+      storage.wrongQuestionsByProfile[profileId] ?? []
+    ).filter((item) => !item.mastered)
+  })
+}
+
+export function selectRewardHead(
+  profileId: string,
+  carriageId: string,
+): AppStorage {
+  return updateAppStorage((storage) => {
+    const reward = storage.rewardsByProfile[profileId]
+    const carriage = getCarriage(carriageId)
+    if (
+      reward &&
+      carriage?.kind === 'head' &&
+      reward.unlockedCarriages.includes(carriageId)
+    ) {
+      reward.selectedHead = carriageId
+    }
   })
 }

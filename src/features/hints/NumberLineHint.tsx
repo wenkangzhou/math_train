@@ -48,12 +48,12 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
   }, [reachedEnd, isAdd, start, end, totalSteps, question.pattern])
 
   return (
-    <div className="rounded-card bg-white/85 p-4 shadow-soft">
+    <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
       {/* 数轴主体（窄屏可横向滚动） */}
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto pb-1">
         <div
-          className="relative mx-auto mt-8 px-6"
-          style={{ minWidth: max > 10 ? 560 : 320, height: 64 }}
+          className="relative mx-auto mt-5 px-6 ipad-land:mt-4"
+          style={{ minWidth: max > 10 ? 560 : 320, height: 58 }}
         >
           {/* 轨道线 */}
           <div className="absolute left-0 right-0 top-9 h-1.5 rounded-full bg-sky-soft" />
@@ -121,24 +121,24 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
         </div>
       </div>
 
-      <p className="mt-1 text-center text-base font-medium text-slate-600 sm:text-lg">
+      <p className="mt-1 text-center text-sm font-bold text-slate-600 sm:text-base ipad-land:text-sm">
         {caption}
       </p>
 
       {/* 控制按钮 */}
-      <div className="mt-3 flex items-center justify-center gap-3">
+      <div className="mt-2 flex items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
           disabled={reachedEnd}
-          className="rounded-full bg-sky px-5 py-2.5 text-base font-bold text-white shadow-soft transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50"
+          className="rounded-full bg-sky px-5 py-2 text-sm font-bold text-white shadow-soft transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50 sm:text-base ipad-land:text-sm"
         >
           {isAdd ? '向右一步 →' : '← 向左一步'}
         </button>
         <button
           type="button"
           onClick={() => setStep(0)}
-          className="rounded-full bg-slate-100 px-4 py-2.5 text-base font-bold text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
+          className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:text-base ipad-land:text-sm"
         >
           重来
         </button>

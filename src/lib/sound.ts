@@ -1,7 +1,7 @@
-// 轻量音效（默认关闭，使用 Web Audio 合成，不加载外部资源）。
-// PRD 第十九节：音效默认关闭或提供明显开关，不自动播放持续声音。
+// 轻量音效（使用 Web Audio 合成，不加载外部资源）。
+// 仅由明确的点击/提交操作触发，不自动播放持续声音。
 
-let enabled = false
+let enabled = true
 let ctx: AudioContext | null = null
 
 function getCtx(): AudioContext | null {
@@ -28,6 +28,7 @@ export function isSoundEnabled(): boolean {
 function tone(freq: number, duration: number, when: number, type: OscillatorType = 'sine') {
   const audio = getCtx()
   if (!audio) return
+  if (audio.state === 'suspended') void audio.resume()
   const osc = audio.createOscillator()
   const gain = audio.createGain()
   osc.type = type
@@ -51,8 +52,9 @@ export function playCorrect(): void {
 
 export function playWrong(): void {
   if (!enabled) return
-  // 柔和的低音提示，不刺耳
-  tone(392.0, 0.18, 0, 'triangle') // G4
+  // 柔和的两级下行音，不刺耳，但能清楚区分于答对音效。
+  tone(392.0, 0.16, 0, 'triangle') // G4
+  tone(293.66, 0.24, 0.14, 'triangle') // D4
 }
 
 export function playTap(): void {

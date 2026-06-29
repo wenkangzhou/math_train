@@ -17,7 +17,9 @@ export function PracticeHeader({
   streak,
   onBack,
 }: PracticeHeaderProps) {
-  const progress = Math.round(((current - 1) / total) * 100)
+  const progress = total <= 1 ? 0 : Math.round(((current - 1) / (total - 1)) * 100)
+  const stationCount = Math.min(Math.max(total, 2), 12)
+  const questionsToFinish = Math.max(total - current + 1, 1)
 
   return (
     <div className="w-full">
@@ -55,48 +57,74 @@ export function PracticeHeader({
         </div>
       </div>
 
-      {/* 进度条：小火车轨道 */}
-      <div className="relative mt-4 h-9 w-full">
-        {/* 枕木 */}
-        <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between px-1">
-          {Array.from({ length: 16 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-5 w-1.5 rounded-sm bg-amber-800/20"
+      {/* 进度条：一眼看懂的火车旅程 */}
+      <div
+        className="mt-3 rounded-[22px] border border-white/80 bg-white/60 px-4 pb-3 pt-2.5 shadow-soft backdrop-blur-sm ipad-land:mt-2 ipad-land:px-3 ipad-land:pb-2 ipad-land:pt-2"
+        aria-label={`第 ${current} 题，共 ${total} 题，还需完成 ${questionsToFinish} 题`}
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuenow={current}
+      >
+        <div className="flex items-center justify-between gap-3 text-xs font-extrabold">
+          <span className="flex items-center gap-1.5 text-sky-700">
+            <span aria-hidden="true">🚉</span>
+            第 {current} 站
+          </span>
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-700 ipad-land:py-0.5">
+            {questionsToFinish === 1 ? '下一站就是终点' : `再答 ${questionsToFinish} 题到终点`}
+          </span>
+        </div>
+
+        <div className="relative mt-2 h-9 ipad-land:mt-1.5 ipad-land:h-8">
+          <div className="absolute inset-x-1 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-sky-100 shadow-inner">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             />
-          ))}
-        </div>
+          </div>
 
-        {/* 上下铁轨 */}
-        <div className="absolute inset-x-0 top-[calc(50%-5px)] h-1 rounded-full bg-amber-800/30" />
-        <div className="absolute inset-x-0 top-[calc(50%+4px)] h-1 rounded-full bg-amber-800/30" />
+          <div className="absolute inset-x-1 top-1/2 -translate-y-1/2">
+            {Array.from({ length: stationCount }, (_, index) => {
+              const stationProgress = (index / (stationCount - 1)) * 100
+              const isReached = stationProgress <= progress
+              const isCurrent = index === Math.round((progress / 100) * (stationCount - 1))
 
-        {/* 已行驶轨道 */}
-        <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full">
+              return (
+                <span
+                  key={`station-${index + 1}`}
+                  className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${
+                    isCurrent
+                      ? 'z-10 scale-125 bg-coral ring-2 ring-coral/20'
+                      : isReached
+                        ? 'bg-emerald-400'
+                        : 'bg-sky-200'
+                  }`}
+                  style={{ left: `${stationProgress}%` }}
+                  aria-hidden="true"
+                />
+              )
+            })}
+          </div>
+
           <motion.div
-            className="h-full bg-gradient-to-r from-sky via-sky-300 to-grass"
+            className="absolute -top-0.5 z-20 ipad-land:-top-1"
             initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
+            animate={{
+              left: `clamp(0px, calc(${progress}% - 17px), calc(100% - 34px))`,
+              y: [0, -1.5, 0],
+            }}
+            transition={{
+              left: { duration: 0.5, ease: 'easeOut' },
+              y: { duration: 0.45, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            aria-hidden="true"
+          >
+            <TrainMascot mood="happy" size={34} />
+          </motion.div>
         </div>
-
-        {/* 行驶的小火车 */}
-        <motion.div
-          className="absolute -top-1 z-10"
-          initial={false}
-          animate={{
-            left: `clamp(0px, calc(${progress}% - 18px), calc(100% - 36px))`,
-            y: [0, -2, 0],
-          }}
-          transition={{
-            left: { duration: 0.5, ease: 'easeOut' },
-            y: { duration: 0.4, repeat: Infinity, ease: 'easeInOut' },
-          }}
-          aria-hidden="true"
-        >
-          <TrainMascot mood="happy" size={36} />
-        </motion.div>
       </div>
     </div>
   )

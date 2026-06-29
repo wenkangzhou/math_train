@@ -6,6 +6,7 @@ import type {
   Question,
   StoredHistory,
 } from '@/types/math'
+import type { Carriage } from '@/types/rewards'
 import { generateQuestions } from '@/lib/questionGenerator'
 import {
   DEFAULT_SETTINGS,
@@ -18,12 +19,23 @@ import { resultLevel } from '@/lib/difficulty'
 import { SetupScreen, type StartSettings } from '@/components/setup/SetupScreen'
 import { PracticeScreen } from '@/components/practice/PracticeScreen'
 import { ResultScreen } from '@/components/result/ResultScreen'
+import { OfflineStatusBadge } from '@/components/common/OfflineStatusBadge'
+import {
+  loadAppStorage,
+  recordLearningResult,
+  saveProfileSettings,
+  selectRewardHead,
+} from '@/lib/appStorage'
+import {
+  DEFAULT_PROFILE_SETTINGS,
+  createDefaultRewardState,
+} from '@/lib/defaults'
 
 type Screen = 'setup' | 'practice' | 'result'
 
 // 练习设置（含第二版的题型格式与细分技能）
 type ActiveSettings = PracticeSettings &
-  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags'>>
+  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled'>>
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('setup')
@@ -31,22 +43,41 @@ export default function App() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [history, setHistory] = useState<StoredHistory>(() => loadHistory())
+  const [learningData, setLearningData] = useState(() => loadAppStorage())
+  const [newlyUnlocked, setNewlyUnlocked] = useState<Carriage[]>([])
+
+  const profileId =
+    learningData.activeProfileId ?? learningData.profiles[0]?.id ?? ''
+  const reward =
+    learningData.rewardsByProfile[profileId] ??
+    createDefaultRewardState(history.totalStars)
+  const wrongRecords = learningData.wrongQuestionsByProfile[profileId] ?? []
 
   // 初始化：读取本地设置与累计星星
   useEffect(() => {
     setSettings(loadSettings())
     setHistory(loadHistory())
+    setLearningData(loadAppStorage())
   }, [])
 
   const startWith = useCallback(
     (s: ActiveSettings, qs: Question[]) => {
       saveSettings(s)
+      if (profileId) {
+        setLearningData(saveProfileSettings(profileId, {
+          ...DEFAULT_PROFILE_SETTINGS,
+          ...s,
+          questionFormats: s.questionFormats ?? ['equation'],
+          skillTags: s.skillTags ?? [],
+        }))
+      }
       setSettings(s)
       setQuestions(qs)
       setResult(null)
+      setNewlyUnlocked([])
       setScreen('practice')
     },
-    [],
+    [profileId],
   )
 
   // 从设置页开始
@@ -73,10 +104,19 @@ export default function App() {
       wrongQuestions: res.wrongQuestions,
     })
     setHistory(history)
+    if (profileId) {
+      const learningUpdate = recordLearningResult({
+        profileId,
+        settings,
+        result: res,
+      })
+      setLearningData(learningUpdate.storage)
+      setNewlyUnlocked(learningUpdate.newlyUnlocked)
+    }
     setResult(res)
     setScreen('result')
     void level
-  }, [])
+  }, [profileId, settings])
 
   // 退出练习，回到设置
   const handleExit = useCallback(() => {
@@ -97,12 +137,22 @@ export default function App() {
   }, [result, settings, startWith])
 
   const handlePracticeSavedWrong = useCallback(() => {
-    if (history.lastWrongQuestions.length === 0) return
-    const shuffled = [...history.lastWrongQuestions].sort(
+    const pendingQuestions = wrongRecords
+      .filter((item) => !item.mastered)
+      .sort((a, b) => a.lastPracticedAt.localeCompare(b.lastPracticedAt))
+      .slice(0, 10)
+      .map((item) => item.question)
+    if (pendingQuestions.length === 0) return
+    const shuffled = [...pendingQuestions].sort(
       () => Math.random() - 0.5,
     )
     startWith(settings, shuffled)
-  }, [history.lastWrongQuestions, settings, startWith])
+  }, [wrongRecords, settings, startWith])
+
+  const handleSelectHead = useCallback((id: string) => {
+    if (!profileId) return
+    setLearningData(selectRewardHead(profileId, id))
+  }, [profileId])
 
   const handleReconfigure = useCallback(() => {
     setScreen('setup')
@@ -110,6 +160,7 @@ export default function App() {
 
   return (
     <div className="min-h-full w-full px-safe">
+      <OfflineStatusBadge />
       <AnimatePresence mode="wait">
         {screen === 'setup' && (
           <motion.div
@@ -122,8 +173,11 @@ export default function App() {
             <SetupScreen
               initialSettings={settings}
               history={history}
+              reward={reward}
+              wrongRecords={wrongRecords}
               onStart={handleStart}
               onPracticeWrong={handlePracticeSavedWrong}
+              onSelectHead={handleSelectHead}
             />
           </motion.div>
         )}
@@ -155,7 +209,8 @@ export default function App() {
           >
             <ResultScreen
               result={result}
-              totalStars={history.totalStars}
+              totalStars={reward.stars}
+              newlyUnlocked={newlyUnlocked}
               onReplay={handleReplay}
               onPracticeWrong={handlePracticeWrong}
               onReconfigure={handleReconfigure}

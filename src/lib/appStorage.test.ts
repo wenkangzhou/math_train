@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import type { StoredHistory } from '@/types/math'
+import type { PracticeResult, Question, StoredHistory } from '@/types/math'
 import {
   migrateStorageV1ToV2,
   mapV1History,
   mapV1Wrong,
 } from './migrations'
-import { normalizeAppStorage, createFreshStorage } from './appStorage'
+import {
+  applyLearningResult,
+  normalizeAppStorage,
+  createFreshStorage,
+} from './appStorage'
 import { DEFAULT_PROFILE_SETTINGS } from './defaults'
 import { STORAGE_VERSION } from '@/types/storage'
 
@@ -36,7 +40,7 @@ describe('v1 → v2 数据迁移', () => {
     expect(s.settingsByProfile[pid].questionCount).toBe(20)
     expect(s.settingsByProfile[pid].autoShowVisualHint).toBe(true)
     expect(s.settingsByProfile[pid].speechRate).toBe(DEFAULT_PROFILE_SETTINGS.speechRate)
-    expect(s.settingsByProfile[pid].soundEnabled).toBe(false)
+    expect(s.settingsByProfile[pid].soundEnabled).toBe(true)
 
     // 历史
     expect(s.historyByProfile[pid]).toHaveLength(2)
@@ -102,5 +106,92 @@ describe('normalizeAppStorage 防御', () => {
     expect(s.profiles).toHaveLength(1)
     const pid = s.profiles[0].id
     expect(s.rewardsByProfile[pid].unlockedCarriages.length).toBeGreaterThan(0)
+  })
+})
+
+describe('练习结算、奖励与长期错题', () => {
+  const question: Question = {
+    id: 'q1',
+    operation: 'addition',
+    range: 10,
+    pattern: 'a-plus-b-equals-blank',
+    left: 3,
+    right: 2,
+    result: null,
+    answer: 5,
+    fullLeft: 3,
+    fullRight: 2,
+    fullResult: 5,
+    visualTheme: 'car',
+  }
+
+  function result(params: {
+    firstTry: boolean
+    id?: string
+    wrongAnswers?: number[]
+  }): PracticeResult {
+    const q = { ...question, id: params.id ?? question.id }
+    return {
+      questions: [q],
+      records: [{
+        questionId: q.id,
+        answer: 5,
+        isCorrect: params.firstTry,
+        attempts: params.firstTry ? 1 : 2,
+        usedHint: false,
+        durationMs: 1000,
+        wrongAnswers: params.wrongAnswers ?? [],
+      }],
+      stars: params.firstTry ? 1 : 0,
+      correctCount: params.firstTry ? 1 : 0,
+      total: 1,
+      accuracy: params.firstTry ? 1 : 0,
+      bestStreak: params.firstTry ? 1 : 0,
+      hintsUsed: 0,
+      wrongQuestions: params.firstTry ? [] : [q],
+    }
+  }
+
+  it('答错后长期保存，连续两次独立答对后标为已掌握', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: false, wrongAnswers: [4] }),
+    })
+    expect(storage.wrongQuestionsByProfile[pid]).toHaveLength(1)
+    expect(storage.wrongQuestionsByProfile[pid][0].wrongAnswers).toEqual([4])
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true, id: 'q2' }),
+    })
+    expect(storage.wrongQuestionsByProfile[pid][0].mastered).toBe(false)
+    expect(storage.wrongQuestionsByProfile[pid][0].correctCountAfterWrong).toBe(1)
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true, id: 'q3' }),
+    })
+    expect(storage.wrongQuestionsByProfile[pid][0].mastered).toBe(true)
+  })
+
+  it('累计星星跨过阈值时返回新解锁车厢', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+    storage.rewardsByProfile[pid].stars = 9
+
+    const unlocked = applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true }),
+    })
+
+    expect(storage.rewardsByProfile[pid].stars).toBe(10)
+    expect(unlocked.map((item) => item.id)).toContain('car-num-2')
   })
 })

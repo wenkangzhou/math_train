@@ -105,6 +105,8 @@ export interface AnswerRecord {
   attempts: number
   usedHint: boolean
   durationMs: number
+  // 本题曾输入过的错误答案，用于长期错题本分析。
+  wrongAnswers?: number[]
 }
 
 export interface PracticeSession {

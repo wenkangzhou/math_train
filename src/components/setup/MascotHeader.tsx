@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { CloudOff, Sparkles } from 'lucide-react'
 
 export function MascotHeader() {
   return (
@@ -16,9 +16,14 @@ export function MascotHeader() {
           </p>
         </div>
       </div>
-      <span className="hidden items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white sm:flex">
-        <Sparkles size={15} /> 适合 4–7 岁
-      </span>
+      <div className="hidden items-center gap-2 sm:flex">
+        <span className="flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white">
+          <CloudOff size={15} /> 可离线使用
+        </span>
+        <span className="flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white">
+          <Sparkles size={15} /> 适合 4–7 岁
+        </span>
+      </div>
     </header>
   )
 }

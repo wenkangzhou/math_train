@@ -17,14 +17,14 @@ import { NumberLineHint } from '@/features/hints/NumberLineHint'
 import { DragHint } from '@/features/hints/DragHint'
 import { FeedbackOverlay } from './FeedbackOverlay'
 import { ConfirmExitDialog } from '@/components/common/ConfirmExitDialog'
-import { playCorrect, playWrong, playTap } from '@/lib/sound'
+import { playCorrect, playWrong, playTap, setSoundEnabled } from '@/lib/sound'
 import { speak, cancelSpeech, questionToSpeech } from '@/lib/speech'
 
 type HintPanel = 'none' | 'picture' | 'numberline' | 'drag'
 
 interface PracticeScreenProps {
   questions: Question[]
-  settings: PracticeSettings
+  settings: PracticeSettings & { soundEnabled?: boolean }
   onComplete: (result: PracticeResult) => void
   onExit: () => void
 }
@@ -64,6 +64,7 @@ export function PracticeScreen({
 
   const bestRef = useRef(0)
   const recordsRef = useRef<AnswerRecord[]>([])
+  const wrongAnswersRef = useRef<number[]>([])
   const startTimeRef = useRef<number>(Date.now())
 
   const question = questions[index]
@@ -79,6 +80,7 @@ export function PracticeScreen({
     setShowHint(settings.autoShowVisualHint ? 'picture' : 'none')
     setFeedback('idle')
     setLocked(false)
+    wrongAnswersRef.current = []
     startTimeRef.current = Date.now()
     cancelSpeech()
   }, [settings.autoShowVisualHint])
@@ -132,6 +134,7 @@ export function PracticeScreen({
         attempts: attempts + 1,
         usedHint,
         durationMs: Date.now() - startTimeRef.current,
+        wrongAnswers: [...wrongAnswersRef.current],
       })
 
       if (firstTry) {
@@ -147,6 +150,7 @@ export function PracticeScreen({
 
       window.setTimeout(advance, 1300)
     } else {
+      wrongAnswersRef.current.push(entered)
       const nextAttempts = attempts + 1
       setAttempts(nextAttempts)
       setStreak(0)
@@ -222,6 +226,10 @@ export function PracticeScreen({
   // 离开练习页时停止朗读
   useEffect(() => cancelSpeech, [])
 
+  useEffect(() => {
+    setSoundEnabled(settings.soundEnabled ?? true)
+  }, [settings.soundEnabled])
+
   const currentNumber = useMemo(() => index + 1, [index])
 
   if (!question) return null
@@ -294,7 +302,9 @@ export function PracticeScreen({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className="relative z-20 mt-3 rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:left-0 ipad-land:right-0 ipad-land:top-full ipad-land:mt-2"
+                  role="region"
+                  aria-label="学习辅助内容"
+                  className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[360px] ipad-land:p-2"
                 >
                   {showHint === 'picture' && (
                     <VisualHint question={question} level={hintLevel} />

@@ -51,6 +51,8 @@ function buildScenario(q: Question): Scenario {
 }
 
 // 单个可拖动物品：拖入目标区或点按即放置；未命中自动弹回。
+// 用 div 代替 button：iOS Safari 上 button 的默认触摸/点击行为容易和 framer-motion drag 冲突，
+// 导致孩子手指按住拖动时手势被浏览器截走、拖不动。
 function DraggableItem({
   emoji,
   targetRef,
@@ -63,23 +65,32 @@ function DraggableItem({
   const draggedRef = useRef(false)
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
       drag
       dragSnapToOrigin
+      dragElastic={0}
+      dragMomentum={false}
       onDragStart={() => {
         draggedRef.current = true
       }}
       onDragEnd={(_, info) => {
         const r = targetRef.current?.getBoundingClientRect()
         const { x, y } = info.point
-        if (r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        // 给目标区留 16px 容错边距，孩子手指 release 时不必那么精确
+        const tolerance = 16
+        if (
+          r &&
+          x >= r.left - tolerance &&
+          x <= r.right + tolerance &&
+          y >= r.top - tolerance &&
+          y <= r.bottom + tolerance
+        ) {
           onPlaced()
         }
         // 稍后复位标记，避免拖拽结束误触发 click
         window.setTimeout(() => {
           draggedRef.current = false
-        }, 50)
+        }, 80)
       }}
       onClick={() => {
         if (draggedRef.current) return
@@ -87,11 +98,13 @@ function DraggableItem({
       }}
       whileDrag={{ scale: 1.25, zIndex: 50 }}
       whileTap={{ scale: 1.1 }}
-      className="inline-flex h-12 w-12 cursor-grab touch-none items-center justify-center text-3xl active:cursor-grabbing sm:h-14 sm:w-14 sm:text-4xl"
-      aria-hidden="true"
+      role="button"
+      tabIndex={0}
+      aria-label="拖一拖"
+      className="inline-flex h-12 w-12 cursor-grab touch-none select-none items-center justify-center text-3xl active:cursor-grabbing sm:h-14 sm:w-14 sm:text-4xl"
     >
       {emoji}
-    </motion.button>
+    </motion.div>
   )
 }
 

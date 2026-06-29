@@ -53,6 +53,32 @@ function buildScenario(q: Question): Scenario {
 // 单个可拖动物品：拖入目标区或点按即放置；未命中自动弹回。
 // 用 div 代替 button：iOS Safari 上 button 的默认触摸/点击行为容易和 framer-motion drag 冲突，
 // 导致孩子手指按住拖动时手势被浏览器截走、拖不动。
+function pointerFromEvent(
+  e: MouseEvent | TouchEvent | PointerEvent,
+): { x: number; y: number } | null {
+  if ('changedTouches' in e) {
+    const t = (e as TouchEvent).changedTouches[0]
+    if (t) return { x: t.clientX, y: t.clientY }
+  }
+  if ('clientX' in e) {
+    const p = e as MouseEvent | PointerEvent
+    return { x: p.clientX, y: p.clientY }
+  }
+  return null
+}
+
+function rectsOverlap(a: DOMRect, b: DOMRect): boolean {
+  return !(
+    a.right < b.left ||
+    a.left > b.right ||
+    a.bottom < b.top ||
+    a.top > b.bottom
+  )
+}
+
+// 单个可拖动物品：拖入目标区或点按即放置；未命中自动弹回。
+// 用 div 代替 button：iOS Safari 上 button 的默认触摸/点击行为容易和 framer-motion drag 冲突。
+// drop 检测用「元素是否与目标区重叠」或「手指是否在目标区附近」，比 info.point（元素原点）更准。
 function DraggableItem({
   emoji,
   targetRef,
@@ -63,9 +89,11 @@ function DraggableItem({
   onPlaced: () => void
 }) {
   const draggedRef = useRef(false)
+  const itemRef = useRef<HTMLDivElement>(null)
 
   return (
     <motion.div
+      ref={itemRef}
       drag
       dragSnapToOrigin
       dragElastic={0}
@@ -73,18 +101,27 @@ function DraggableItem({
       onDragStart={() => {
         draggedRef.current = true
       }}
-      onDragEnd={(_, info) => {
-        const r = targetRef.current?.getBoundingClientRect()
-        const { x, y } = info.point
-        // 给目标区留 16px 容错边距，孩子手指 release 时不必那么精确
-        const tolerance = 16
-        if (
-          r &&
-          x >= r.left - tolerance &&
-          x <= r.right + tolerance &&
-          y >= r.top - tolerance &&
-          y <= r.bottom + tolerance
-        ) {
+      onDragEnd={(e) => {
+        const target = targetRef.current?.getBoundingClientRect()
+        const item = itemRef.current?.getBoundingClientRect()
+        let hit = false
+        if (target && item) {
+          // 主要判断：拖动的物品和目标区只要有重叠，就算命中
+          hit = rectsOverlap(item, target)
+        }
+        if (!hit) {
+          // 兜底：手指 release 位置在目标区附近（含 40px 容错）也算命中
+          const p = pointerFromEvent(e)
+          if (p && target) {
+            const tolerance = 40
+            hit =
+              p.x >= target.left - tolerance &&
+              p.x <= target.right + tolerance &&
+              p.y >= target.top - tolerance &&
+              p.y <= target.bottom + tolerance
+          }
+        }
+        if (hit) {
           onPlaced()
         }
         // 稍后复位标记，避免拖拽结束误触发 click

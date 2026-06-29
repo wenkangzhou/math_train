@@ -27,7 +27,7 @@ export function ResultSummary({ result }: ResultSummaryProps) {
   const accuracyPct = Math.round(result.accuracy * 100)
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 rounded-[26px] bg-sky-soft/20 p-4 ring-1 ring-sky/10">
       {/* 星星 */}
       <div className="flex items-center justify-center gap-2 text-amber-500">
         {Array.from({ length: Math.min(result.stars, 10) }, (_, i) => (

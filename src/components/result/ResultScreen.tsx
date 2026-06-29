@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { PracticeResult } from '@/types/math'
 import { resultLevel } from '@/lib/difficulty'
+import { Star } from 'lucide-react'
 import { TrainMascot } from '@/components/common/TrainMascot'
 import { Celebration } from './Celebration'
 import { ResultSummary } from './ResultSummary'
@@ -12,63 +13,66 @@ interface ResultScreenProps {
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
-  onHome: () => void
 }
 
 export function ResultScreen({
   result,
+  totalStars,
   onReplay,
   onPracticeWrong,
   onReconfigure,
-  onHome,
 }: ResultScreenProps) {
   const level = resultLevel(result.accuracy)
 
   return (
-    <div className="relative mx-auto flex min-h-screen-safe max-w-xl flex-col items-center justify-center px-4 py-8 sm:px-6 sm:max-w-2xl ipad-land:max-w-3xl ipad-land:py-6">
+    <div className="relative mx-auto flex min-h-screen-safe max-w-xl flex-col items-center justify-center px-4 py-8 sm:max-w-2xl sm:px-6 ipad-land:max-w-5xl ipad-land:py-6">
       <Celebration />
 
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-        className="z-10 flex w-full flex-col items-center gap-5 rounded-card bg-white/70 p-6 shadow-soft backdrop-blur sm:p-8 md:gap-6 md:p-10"
+        className="z-10 grid w-full gap-5 rounded-[34px] bg-white/75 p-6 shadow-soft ring-1 ring-white/80 backdrop-blur sm:p-8 ipad-land:grid-cols-[0.9fr_1.4fr] ipad-land:items-center ipad-land:gap-8 ipad-land:p-9"
       >
-        <TrainMascot mood="cheer" size={120} />
+        <div className="flex flex-col items-center text-center">
+          <TrainMascot mood="cheer" size={150} />
 
-        {/* 等级（始终正向） */}
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 240 }}
-            className="text-2xl"
-          >
-            {level.emoji}
-          </motion.div>
-          <h1
-            className="text-3xl font-extrabold sm:text-4xl"
-            style={{ color: level.color }}
-          >
-            {level.title}
-          </h1>
-          <p className="mt-1 text-lg font-medium text-slate-600">
-            今天完成了 {result.total} 道题！
-          </p>
-          <p className="text-base text-slate-500">
-            答对 {result.correctCount} 道，得到 {result.stars} 颗星星！
-          </p>
+          {/* 等级（始终正向） */}
+          <div className="mt-2">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 240 }}
+              className="text-3xl"
+            >
+              {level.emoji}
+            </motion.div>
+            <h1
+              className="text-3xl font-extrabold sm:text-4xl"
+              style={{ color: level.color }}
+            >
+              {level.title}
+            </h1>
+            <p className="mt-1 text-lg font-bold text-slate-600">
+              完成 {result.total} 道题，收下 {result.stars} 颗星！
+            </p>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-extrabold text-amber-600 ring-1 ring-amber-200">
+            <Star size={18} fill="currentColor" /> 累计星星 {totalStars}
+          </div>
         </div>
 
-        <ResultSummary result={result} />
+        <div className="flex min-w-0 flex-col gap-5">
+          <ResultSummary result={result} />
 
-        <ResultActions
-          hasWrong={result.wrongQuestions.length > 0}
-          onReplay={onReplay}
-          onPracticeWrong={onPracticeWrong}
-          onReconfigure={onReconfigure}
-          onHome={onHome}
-        />
+          <ResultActions
+            hasWrong={result.wrongQuestions.length > 0}
+            onReplay={onReplay}
+            onPracticeWrong={onPracticeWrong}
+            onReconfigure={onReconfigure}
+          />
+        </div>
       </motion.div>
     </div>
   )

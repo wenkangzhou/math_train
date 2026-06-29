@@ -1,24 +1,24 @@
-import { motion } from 'framer-motion'
-import { TrainMascot } from '@/components/common/TrainMascot'
+import { Sparkles } from 'lucide-react'
 
 export function MascotHeader() {
   return (
-    <header className="relative flex items-center justify-center gap-3 pb-1 pt-1 text-center ipad-land:gap-3 ipad-land:pb-1 ipad-land:pt-1">
-      <motion.div
-        animate={{ y: [0, -3, 0] }}
-        transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <TrainMascot mood="happy" size={52} />
-      </motion.div>
-
-      <div className="text-left">
-        <h1 className="text-xl font-extrabold text-slate-700 ipad-land:text-2xl">
-          数数小火车
-        </h1>
-        <p className="text-xs font-medium text-slate-500 ipad-land:text-sm">
-          和小火车一起学加减法
-        </p>
+    <header className="flex items-center justify-between gap-4 px-1">
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 text-2xl shadow-soft ring-1 ring-white">
+          <img src="/icons/icon-192.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
+        </span>
+        <div>
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-700 ipad-land:text-2xl">
+            数数小火车
+          </h1>
+          <p className="text-xs font-semibold text-slate-400 ipad-land:text-sm">
+            和小火车一起学加减法
+          </p>
+        </div>
       </div>
+      <span className="hidden items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white sm:flex">
+        <Sparkles size={15} /> 适合 4–7 岁
+      </span>
     </header>
   )
 }

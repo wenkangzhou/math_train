@@ -53,7 +53,7 @@ export function HintSettings({
   onChangeAfterWrong,
 }: HintSettingsProps) {
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       <ToggleRow
         label="自动显示图片提示"
         description="每道题自动显示数量图片"

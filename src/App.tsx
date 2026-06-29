@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { PracticeResult, PracticeSettings, Question } from '@/types/math'
+import type {
+  PracticeResult,
+  PracticeSettings,
+  Question,
+  StoredHistory,
+} from '@/types/math'
 import { generateQuestions } from '@/lib/questionGenerator'
 import {
   DEFAULT_SETTINGS,
@@ -25,12 +30,12 @@ export default function App() {
   const [settings, setSettings] = useState<ActiveSettings>(DEFAULT_SETTINGS)
   const [questions, setQuestions] = useState<Question[]>([])
   const [result, setResult] = useState<PracticeResult | null>(null)
-  const [totalStars, setTotalStars] = useState(0)
+  const [history, setHistory] = useState<StoredHistory>(() => loadHistory())
 
   // 初始化：读取本地设置与累计星星
   useEffect(() => {
     setSettings(loadSettings())
-    setTotalStars(loadHistory().totalStars)
+    setHistory(loadHistory())
   }, [])
 
   const startWith = useCallback(
@@ -67,7 +72,7 @@ export default function App() {
       earnedStars: res.stars,
       wrongQuestions: res.wrongQuestions,
     })
-    setTotalStars(history.totalStars)
+    setHistory(history)
     setResult(res)
     setScreen('result')
     void level
@@ -91,6 +96,14 @@ export default function App() {
     startWith(settings, shuffled)
   }, [result, settings, startWith])
 
+  const handlePracticeSavedWrong = useCallback(() => {
+    if (history.lastWrongQuestions.length === 0) return
+    const shuffled = [...history.lastWrongQuestions].sort(
+      () => Math.random() - 0.5,
+    )
+    startWith(settings, shuffled)
+  }, [history.lastWrongQuestions, settings, startWith])
+
   const handleReconfigure = useCallback(() => {
     setScreen('setup')
   }, [])
@@ -108,7 +121,9 @@ export default function App() {
           >
             <SetupScreen
               initialSettings={settings}
+              history={history}
               onStart={handleStart}
+              onPracticeWrong={handlePracticeSavedWrong}
             />
           </motion.div>
         )}
@@ -140,11 +155,10 @@ export default function App() {
           >
             <ResultScreen
               result={result}
-              totalStars={totalStars}
+              totalStars={history.totalStars}
               onReplay={handleReplay}
               onPracticeWrong={handlePracticeWrong}
               onReconfigure={handleReconfigure}
-              onHome={handleReconfigure}
             />
           </motion.div>
         )}

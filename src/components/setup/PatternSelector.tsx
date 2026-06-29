@@ -90,7 +90,7 @@ export function PatternSelector({
   onToggle,
 }: PatternSelectorProps) {
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 ipad-land:grid-cols-2 ipad-land:gap-5">
       <PatternGroup
         label="加法题型"
         options={ADD_OPTIONS}

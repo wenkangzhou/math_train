@@ -26,12 +26,12 @@ export function PracticeHeader({
           type="button"
           onClick={onBack}
           aria-label="返回设置页"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-slate-500 shadow-soft transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-slate-500 shadow-soft transition hover:-translate-x-0.5 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50"
         >
           <ArrowLeft size={24} />
         </button>
 
-        <div className="rounded-full bg-white/80 px-4 py-1.5 text-base font-bold text-slate-600 shadow-soft ipad-land:px-3 ipad-land:py-1 ipad-land:text-sm">
+        <div className="rounded-full bg-white/80 px-5 py-2 text-base font-extrabold text-slate-600 shadow-soft">
           第 {current} / {total} 题
         </div>
 
@@ -46,9 +46,9 @@ export function PracticeHeader({
               <span className="text-sm font-extrabold ipad-land:text-xs">{streak}</span>
             </motion.div>
           )}
-          <div className="flex items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 text-amber-500 shadow-soft ipad-land:px-2 ipad-land:py-1">
-            <Star size={20} fill="currentColor" className="ipad-land:h-4 ipad-land:w-4" />
-            <span className="font-extrabold ipad-land:text-sm" id="star-counter">
+          <div className="flex min-h-10 items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 text-amber-500 shadow-soft">
+            <Star size={20} fill="currentColor" />
+            <span className="font-extrabold" id="star-counter">
               {stars}
             </span>
           </div>

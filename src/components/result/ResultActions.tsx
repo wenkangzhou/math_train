@@ -1,12 +1,11 @@
 import { motion } from 'framer-motion'
-import { RotateCcw, BookOpen, Settings, Home } from 'lucide-react'
+import { RotateCcw, BookOpen, Settings } from 'lucide-react'
 
 interface ResultActionsProps {
   hasWrong: boolean
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
-  onHome: () => void
 }
 
 function ActionButton({
@@ -43,7 +42,6 @@ export function ResultActions({
   onReplay,
   onPracticeWrong,
   onReconfigure,
-  onHome,
 }: ResultActionsProps) {
   return (
     <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
@@ -65,7 +63,6 @@ export function ResultActions({
         icon={<Settings size={22} />}
         onClick={onReconfigure}
       />
-      <ActionButton label="回到首页" icon={<Home size={22} />} onClick={onHome} />
     </div>
   )
 }

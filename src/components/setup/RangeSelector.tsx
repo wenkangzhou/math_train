@@ -48,7 +48,7 @@ interface RangeSelectorProps {
 
 export function RangeSelector({ selected, onToggle }: RangeSelectorProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 gap-3 ipad-land:grid-cols-4 ipad-land:gap-2.5">
       {RANGE_OPTIONS.map((opt) => {
         const active = selected.includes(opt.value)
         return (
@@ -60,7 +60,7 @@ export function RangeSelector({ selected, onToggle }: RangeSelectorProps) {
             onClick={() => onToggle(opt.value)}
             aria-pressed={active}
             className={[
-              'relative flex min-h-[64px] items-center gap-3 rounded-btn p-3.5 text-left transition ipad-land:min-h-[52px] ipad-land:p-2.5',
+              'relative flex min-h-[64px] items-center gap-3 rounded-btn p-3.5 text-left transition ipad-land:min-h-[62px] ipad-land:gap-2 ipad-land:p-2.5',
               'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
               active
                 ? `${opt.bg} ring-4 ${opt.ring} shadow-soft`
@@ -75,7 +75,7 @@ export function RangeSelector({ selected, onToggle }: RangeSelectorProps) {
             >
               {opt.op === 'add' ? <Plus size={26} className="ipad-land:h-5 ipad-land:w-5" /> : <Minus size={26} className="ipad-land:h-5 ipad-land:w-5" />}
             </span>
-            <span className="text-lg font-bold text-slate-700 ipad-land:text-base">{opt.label}</span>
+            <span className="text-base font-bold leading-tight text-slate-700 sm:text-lg ipad-land:text-sm">{opt.label}</span>
             {active && (
               <motion.span
                 initial={{ scale: 0 }}

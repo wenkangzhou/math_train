@@ -227,7 +227,7 @@ export function PracticeScreen({
   if (!question) return null
 
   return (
-    <div className="mx-auto flex min-h-screen-safe max-w-3xl flex-col px-4 pb-6 pt-4 sm:px-6 ipad-land:max-w-5xl">
+    <div className="mx-auto flex min-h-screen-safe max-w-3xl flex-col px-4 pb-6 pt-3 sm:px-6 ipad-land:max-w-6xl ipad-land:px-8 ipad-land:pb-5 ipad-land:pt-4">
       <PracticeHeader
         current={currentNumber}
         total={total}
@@ -237,7 +237,7 @@ export function PracticeScreen({
       />
 
       {/* 内容区：竖屏纵向居中堆叠；横屏两栏（左题目+提示，右键盘） */}
-      <div className="mt-4 flex flex-1 flex-col justify-center gap-6 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(340px,400px)] ipad-land:items-center ipad-land:gap-6">
+      <div className="mt-3 flex flex-1 flex-col justify-center gap-6 ipad-land:grid ipad-land:grid-cols-[minmax(0,1.35fr)_minmax(390px,0.9fr)] ipad-land:items-center ipad-land:gap-8">
         {/* 左：题目 + 提示（提示面板为 absolute overlay，不推动题目位置） */}
         <div className="relative flex w-full flex-col items-center justify-center gap-4">
           <FeedbackOverlay state={feedback} message={feedbackMsg} />
@@ -259,7 +259,7 @@ export function PracticeScreen({
 
           {/* 提示工具栏 + 浮层面板 */}
           <div className="relative w-full">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 ipad-land:gap-2.5">
               <HintTab
                 active={showHint === 'picture'}
                 onClick={() => openPanel('picture')}
@@ -294,7 +294,7 @@ export function PracticeScreen({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl bg-white/95 p-4 shadow-xl ring-1 ring-slate-100 ipad-land:p-3"
+                  className="relative z-20 mt-3 rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:left-0 ipad-land:right-0 ipad-land:top-full ipad-land:mt-2"
                 >
                   {showHint === 'picture' && (
                     <VisualHint question={question} level={hintLevel} />
@@ -310,7 +310,7 @@ export function PracticeScreen({
         </div>
 
         {/* 右：数字键盘 */}
-        <div className="w-full ipad-land:flex ipad-land:w-auto ipad-land:flex-col ipad-land:justify-center">
+        <div className="w-full ipad-land:flex ipad-land:w-auto ipad-land:flex-col ipad-land:justify-center ipad-land:rounded-[30px] ipad-land:bg-white/25 ipad-land:p-4 ipad-land:ring-1 ipad-land:ring-white/60">
           <NumberPad
             max={maxDigit}
             entered={entered}
@@ -348,7 +348,7 @@ function HintTab({
       type="button"
       onClick={onClick}
       className={[
-        'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold shadow-soft transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300 sm:text-base ipad-land:px-3 ipad-land:py-1.5 ipad-land:text-xs',
+        'flex min-h-11 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold shadow-soft transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300 sm:text-base ipad-land:px-4 ipad-land:py-2 ipad-land:text-sm',
         active
           ? 'bg-amber-400 text-white'
           : 'bg-amber-100 text-amber-600 hover:bg-amber-200',

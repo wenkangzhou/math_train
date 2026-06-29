@@ -12,10 +12,10 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-btn bg-slate-50 p-4 text-left ring-2 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50"
+      className="flex w-full items-center justify-between gap-4 rounded-btn bg-slate-50 p-3.5 text-left ring-2 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50 ipad-land:p-3"
     >
       <span>
-        <span className="block text-lg font-bold text-slate-700">{label}</span>
+        <span className="block text-base font-bold text-slate-700 ipad-land:text-base">{label}</span>
         {description && (
           <span className="mt-0.5 block text-sm text-slate-400">
             {description}

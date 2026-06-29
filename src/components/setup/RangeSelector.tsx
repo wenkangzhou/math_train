@@ -60,7 +60,7 @@ export function RangeSelector({ selected, onToggle }: RangeSelectorProps) {
             onClick={() => onToggle(opt.value)}
             aria-pressed={active}
             className={[
-              'relative flex min-h-[72px] items-center gap-3 rounded-btn p-4 text-left transition',
+              'relative flex min-h-[64px] items-center gap-3 rounded-btn p-3.5 text-left transition ipad-land:min-h-[52px] ipad-land:p-2.5',
               'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
               active
                 ? `${opt.bg} ring-4 ${opt.ring} shadow-soft`
@@ -69,13 +69,13 @@ export function RangeSelector({ selected, onToggle }: RangeSelectorProps) {
           >
             <span
               className={[
-                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white',
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white ipad-land:h-10 ipad-land:w-10',
                 opt.op === 'add' ? 'bg-sky' : 'bg-coral',
               ].join(' ')}
             >
-              {opt.op === 'add' ? <Plus size={26} /> : <Minus size={26} />}
+              {opt.op === 'add' ? <Plus size={26} className="ipad-land:h-5 ipad-land:w-5" /> : <Minus size={26} className="ipad-land:h-5 ipad-land:w-5" />}
             </span>
-            <span className="text-lg font-bold text-slate-700">{opt.label}</span>
+            <span className="text-lg font-bold text-slate-700 ipad-land:text-base">{opt.label}</span>
             {active && (
               <motion.span
                 initial={{ scale: 0 }}

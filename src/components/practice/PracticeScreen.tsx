@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Lightbulb } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Hand, Image as ImageIcon, Ruler, Volume2 } from 'lucide-react'
 import type {
   AnswerRecord,
   PracticeResult,
@@ -9,12 +9,18 @@ import type {
 } from '@/types/math'
 import { PracticeHeader } from './PracticeHeader'
 import { QuestionCard } from './QuestionCard'
+import { PictureQuestion } from '@/features/questions/PictureQuestion'
+import { StoryBanner } from '@/features/questions/StoryBanner'
 import { NumberPad } from './NumberPad'
 import { VisualHint } from './VisualHint'
+import { NumberLineHint } from '@/features/hints/NumberLineHint'
+import { DragHint } from '@/features/hints/DragHint'
 import { FeedbackOverlay } from './FeedbackOverlay'
 import { ConfirmExitDialog } from '@/components/common/ConfirmExitDialog'
-import { TrainMascot, type MascotMood } from '@/components/common/TrainMascot'
 import { playCorrect, playWrong, playTap } from '@/lib/sound'
+import { speak, cancelSpeech, questionToSpeech } from '@/lib/speech'
+
+type HintPanel = 'none' | 'picture' | 'numberline' | 'drag'
 
 interface PracticeScreenProps {
   questions: Question[]
@@ -45,7 +51,9 @@ export function PracticeScreen({
   const [entered, setEntered] = useState<number | null>(null)
   const [attempts, setAttempts] = useState(0)
   const [usedHint, setUsedHint] = useState(false)
-  const [showHint, setShowHint] = useState(settings.autoShowVisualHint)
+  const [showHint, setShowHint] = useState<HintPanel>(
+    settings.autoShowVisualHint ? 'picture' : 'none',
+  )
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle')
   const [feedbackMsg, setFeedbackMsg] = useState('')
   const [locked, setLocked] = useState(false)
@@ -64,17 +72,15 @@ export function PracticeScreen({
   // 提示等级随答错次数提升（最高 3）
   const hintLevel = Math.min(attempts + (usedHint ? 1 : 0), 3) || 1
 
-  const mascotMood: MascotMood =
-    feedback === 'correct' ? 'cheer' : feedback === 'wrong' ? 'thinking' : 'idle'
-
   const resetForQuestion = useCallback(() => {
     setEntered(null)
     setAttempts(0)
     setUsedHint(false)
-    setShowHint(settings.autoShowVisualHint)
+    setShowHint(settings.autoShowVisualHint ? 'picture' : 'none')
     setFeedback('idle')
     setLocked(false)
     startTimeRef.current = Date.now()
+    cancelSpeech()
   }, [settings.autoShowVisualHint])
 
   const finish = useCallback(() => {
@@ -148,7 +154,7 @@ export function PracticeScreen({
       setFeedbackMsg(pick(WRONG_MSGS))
       playWrong()
       if (settings.showHintAfterWrongAnswer) {
-        setShowHint(true)
+        setShowHint('picture')
         setUsedHint(true)
       }
       // 晃动结束后清空输入，留在本题继续尝试，不公布答案
@@ -200,13 +206,21 @@ export function PracticeScreen({
     return () => window.removeEventListener('keydown', onKey)
   }, [showExit, locked, feedback, maxDigit, handleConfirm])
 
-  const toggleHint = () => {
-    setShowHint((v) => {
-      const next = !v
-      if (next) setUsedHint(true)
-      return next
-    })
-  }
+  // 切换提示面板：点已开的关闭，否则打开（一次只展开一个）。打开即记为用过提示。
+  const openPanel = useCallback((p: HintPanel) => {
+    setShowHint((prev) => (prev === p ? 'none' : p))
+    setUsedHint(true)
+  }, [])
+
+  const speakQuestion = useCallback(() => {
+    if (!question) return
+    setUsedHint(true)
+    // 故事题优先朗读故事，否则朗读算式
+    speak(question.story ?? questionToSpeech(question))
+  }, [question])
+
+  // 离开练习页时停止朗读
+  useEffect(() => cancelSpeech, [])
 
   const currentNumber = useMemo(() => index + 1, [index])
 
@@ -223,47 +237,79 @@ export function PracticeScreen({
       />
 
       {/* 内容区：竖屏纵向居中堆叠；横屏两栏（左题目+提示，右键盘） */}
-      <div className="mt-4 flex flex-1 flex-col justify-center gap-6 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(360px,440px)] ipad-land:items-center ipad-land:gap-8">
-        {/* 左：题目 + 提示 */}
+      <div className="mt-4 flex flex-1 flex-col justify-center gap-6 ipad-land:grid ipad-land:grid-cols-[1fr_minmax(340px,400px)] ipad-land:items-center ipad-land:gap-6">
+        {/* 左：题目 + 提示（提示面板为 absolute overlay，不推动题目位置） */}
         <div className="relative flex w-full flex-col items-center justify-center gap-4">
           <FeedbackOverlay state={feedback} message={feedbackMsg} />
 
-          <div className="w-full">
-            <QuestionCard question={question} entered={entered} feedback={feedback} />
+          <div className="w-full space-y-3">
+            {question.format === 'story' && (
+              <StoryBanner question={question} onSpeak={speakQuestion} />
+            )}
+            {question.format === 'picture' ? (
+              <PictureQuestion
+                question={question}
+                entered={entered}
+                feedback={feedback}
+              />
+            ) : (
+              <QuestionCard question={question} entered={entered} feedback={feedback} />
+            )}
           </div>
 
-          {/* 提示按钮 + 提示区 */}
-          <div className="w-full">
-            {!showHint ? (
-              <button
-                type="button"
-                onClick={toggleHint}
-                className="mx-auto flex items-center gap-2 rounded-full bg-amber-100 px-5 py-2.5 text-base font-bold text-amber-600 shadow-soft transition hover:bg-amber-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
-              >
-                <Lightbulb size={20} fill="currentColor" /> 看看小提示
-              </button>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="overflow-hidden"
-              >
-                <VisualHint question={question} level={hintLevel} />
-                {!settings.autoShowVisualHint && (
-                  <button
-                    type="button"
-                    onClick={() => setShowHint(false)}
-                    className="mx-auto mt-2 block text-sm font-medium text-slate-400 underline-offset-2 hover:underline"
-                  >
-                    收起提示
-                  </button>
-                )}
-              </motion.div>
-            )}
+          {/* 提示工具栏 + 浮层面板 */}
+          <div className="relative w-full">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <HintTab
+                active={showHint === 'picture'}
+                onClick={() => openPanel('picture')}
+                icon={<ImageIcon size={18} />}
+                label="图片"
+              />
+              <HintTab
+                active={showHint === 'numberline'}
+                onClick={() => openPanel('numberline')}
+                icon={<Ruler size={18} />}
+                label="数轴"
+              />
+              <HintTab
+                active={showHint === 'drag'}
+                onClick={() => openPanel('drag')}
+                icon={<Hand size={18} />}
+                label="拖一拖"
+              />
+              <HintTab
+                active={false}
+                onClick={speakQuestion}
+                icon={<Volume2 size={18} />}
+                label="朗读"
+              />
+            </div>
+
+            <AnimatePresence>
+              {showHint !== 'none' && (
+                <motion.div
+                  key={showHint}
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl bg-white/95 p-4 shadow-xl ring-1 ring-slate-100 ipad-land:p-3"
+                >
+                  {showHint === 'picture' && (
+                    <VisualHint question={question} level={hintLevel} />
+                  )}
+                  {showHint === 'numberline' && (
+                    <NumberLineHint question={question} />
+                  )}
+                  {showHint === 'drag' && <DragHint question={question} />}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* 右：数字键盘（横屏纵向居中贴右） */}
+        {/* 右：数字键盘 */}
         <div className="w-full ipad-land:flex ipad-land:w-auto ipad-land:flex-col ipad-land:justify-center">
           <NumberPad
             max={maxDigit}
@@ -276,16 +322,40 @@ export function PracticeScreen({
         </div>
       </div>
 
-      {/* 角落吉祥物 */}
-      <div className="pointer-events-none fixed bottom-safe right-safe z-0 origin-bottom-right scale-110 opacity-90 md:scale-150 ipad-land:scale-[1.7]">
-        <TrainMascot mood={mascotMood} size={96} />
-      </div>
-
       <ConfirmExitDialog
         open={showExit}
         onContinue={() => setShowExit(false)}
         onExit={onExit}
       />
     </div>
+  )
+}
+
+// 提示工具栏按钮
+function HintTab({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold shadow-soft transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300 sm:text-base ipad-land:px-3 ipad-land:py-1.5 ipad-land:text-xs',
+        active
+          ? 'bg-amber-400 text-white'
+          : 'bg-amber-100 text-amber-600 hover:bg-amber-200',
+      ].join(' ')}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

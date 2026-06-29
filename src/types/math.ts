@@ -28,6 +28,40 @@ export type VisualTheme =
   | 'balloon'
   | 'duck'
 
+// 第二版：题目呈现格式（可多选）
+//  - equation：传统算式题（v1 行为）
+//  - picture：图片数量题（不直接给完整算式）
+//  - story：1~2 句话的故事题
+export type QuestionFormat = 'equation' | 'picture' | 'story'
+
+// 第二版：难度细分技能标签（高级设置 / 自适应使用）。
+// 留空时按 RangeType 的粗粒度生成（兼容 v1）。
+export type SkillTag =
+  // 10 以内加法
+  | 'add10-within5'
+  | 'add10-no-zero'
+  | 'add10-with-zero'
+  | 'add10-make5'
+  | 'add10-make10'
+  // 10 以内减法
+  | 'sub10-within5'
+  | 'sub10-basic'
+  | 'sub10-result-zero'
+  | 'sub10-minus-zero'
+  | 'sub10-inverse'
+  // 20 以内加法
+  | 'add20-ten-plus'
+  | 'add20-teen-plus-unit'
+  | 'add20-no-carry'
+  | 'add20-carry'
+  | 'add20-make-ten'
+  // 20 以内减法
+  | 'sub20-teen-minus-unit'
+  | 'sub20-no-borrow'
+  | 'sub20-borrow'
+  | 'sub20-break-ten'
+  | 'sub20-inverse'
+
 export interface Question {
   id: string
   operation: Operation
@@ -43,6 +77,15 @@ export interface Question {
   fullRight: number
   fullResult: number
   visualTheme: VisualTheme
+  // —— 第二版新增（全部可选，兼容 v1 题目）——
+  // 呈现格式；缺省视为 'equation'
+  format?: QuestionFormat
+  // 细分技能标签（若由细分生成器产出）
+  skill?: SkillTag
+  // 故事题文案（1~2 句）；format==='story' 时使用
+  story?: string
+  // 故事/图片题的主角与场景（用于朗读与插图）
+  storyActor?: string
 }
 
 export type QuestionCount = 5 | 10 | 20

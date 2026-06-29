@@ -58,7 +58,7 @@ function PatternGroup({
               aria-pressed={active}
               aria-label={opt.example}
               className={[
-                'relative flex min-h-[60px] items-center justify-center rounded-btn px-1 py-3 transition',
+                'relative flex min-h-[52px] items-center justify-center rounded-btn px-1 py-2 transition ipad-land:min-h-[44px] ipad-land:py-1.5',
                 'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50',
                 !enabled
                   ? 'cursor-not-allowed bg-slate-100 opacity-40'
@@ -67,7 +67,7 @@ function PatternGroup({
                     : 'bg-slate-50 ring-2 ring-slate-200 hover:bg-slate-100',
               ].join(' ')}
             >
-              <span className="font-digit text-lg text-slate-700 sm:text-xl">
+              <span className="font-digit text-lg text-slate-700 sm:text-xl ipad-land:text-base">
                 {opt.example}
               </span>
               {active && (

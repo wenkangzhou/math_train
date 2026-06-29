@@ -10,15 +10,19 @@ import {
   saveSettings,
 } from '@/lib/storage'
 import { resultLevel } from '@/lib/difficulty'
-import { SetupScreen } from '@/components/setup/SetupScreen'
+import { SetupScreen, type StartSettings } from '@/components/setup/SetupScreen'
 import { PracticeScreen } from '@/components/practice/PracticeScreen'
 import { ResultScreen } from '@/components/result/ResultScreen'
 
 type Screen = 'setup' | 'practice' | 'result'
 
+// 练习设置（含第二版的题型格式与细分技能）
+type ActiveSettings = PracticeSettings &
+  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags'>>
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('setup')
-  const [settings, setSettings] = useState<PracticeSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<ActiveSettings>(DEFAULT_SETTINGS)
   const [questions, setQuestions] = useState<Question[]>([])
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [totalStars, setTotalStars] = useState(0)
@@ -30,7 +34,7 @@ export default function App() {
   }, [])
 
   const startWith = useCallback(
-    (s: PracticeSettings, qs: Question[]) => {
+    (s: ActiveSettings, qs: Question[]) => {
       saveSettings(s)
       setSettings(s)
       setQuestions(qs)
@@ -42,7 +46,7 @@ export default function App() {
 
   // 从设置页开始
   const handleStart = useCallback(
-    (s: PracticeSettings) => {
+    (s: StartSettings) => {
       startWith(s, generateQuestions(s))
     },
     [startWith],

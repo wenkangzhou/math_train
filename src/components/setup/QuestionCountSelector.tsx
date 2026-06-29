@@ -24,7 +24,7 @@ export function QuestionCountSelector({
             onClick={() => onChange(count)}
             aria-pressed={active}
             className={[
-              'flex-1 rounded-full py-4 text-2xl font-extrabold transition',
+              'flex-1 rounded-full py-3.5 text-2xl font-extrabold transition ipad-land:py-3 ipad-land:text-xl',
               'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
               active
                 ? 'bg-sky text-white shadow-soft'

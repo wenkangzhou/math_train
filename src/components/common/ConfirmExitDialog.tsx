@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { TrainMascot } from './TrainMascot'
 
 interface ConfirmExitDialogProps {
   open: boolean
@@ -30,7 +31,9 @@ export function ConfirmExitDialog({
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-2 text-5xl">🚂</div>
+            <div className="mb-2 flex justify-center">
+              <TrainMascot mood="thinking" size={88} />
+            </div>
             <p className="mb-6 text-xl font-bold text-slate-700">
               练习还没有完成，
               <br />

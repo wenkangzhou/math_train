@@ -27,8 +27,8 @@ function Item({
 
   if (state === 'ghost') {
     return (
-      <span className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white/40 sm:h-14 sm:w-14">
-        <span className="text-2xl opacity-25 sm:text-3xl">{emoji}</span>
+      <span className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white/40 sm:h-14 sm:w-14 ipad-land:h-10 ipad-land:w-10">
+        <span className="text-2xl opacity-25 sm:text-3xl ipad-land:text-xl">{emoji}</span>
       </span>
     )
   }
@@ -44,12 +44,12 @@ function Item({
       }
       transition={{ type: 'spring', stiffness: 300, damping: 18, delay: index * 0.04 }}
       onClick={() => setTapped((t) => !t)}
-      className="relative inline-flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14"
+      className="relative inline-flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14 ipad-land:h-10 ipad-land:w-10"
       aria-hidden="true"
     >
       <span
         className={[
-          'text-3xl sm:text-4xl',
+          'text-3xl sm:text-4xl ipad-land:text-2xl',
           state === 'faded' ? 'line-through grayscale' : '',
           state === 'new' ? 'drop-shadow-[0_0_6px_rgba(255,179,0,0.8)]' : '',
         ].join(' ')}
@@ -79,7 +79,7 @@ function Group({
   startIndex?: number
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1">
+    <div className="flex flex-wrap items-center justify-center gap-1 ipad-land:gap-0.5">
       {Array.from({ length: count }, (_, i) => (
         <Item
           key={i}
@@ -203,9 +203,9 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
   }
 
   return (
-    <div className="rounded-card bg-white/80 p-4 shadow-soft">
-      <div className="min-h-[80px] py-2">{body}</div>
-      <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg">
+    <div className="rounded-card bg-white/80 p-4 shadow-soft ipad-land:p-3">
+      <div className="min-h-[72px] py-1 ipad-land:min-h-[60px]">{body}</div>
+      <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">
         {text}
       </p>
       {level >= 3 && <CountingProcess question={question} />}

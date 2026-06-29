@@ -1,12 +1,16 @@
 import type {
   Operation,
   Question,
+  QuestionFormat,
   QuestionPattern,
   RangeType,
+  SkillTag,
   VisualTheme,
   PracticeSettings,
 } from '@/types/math'
 import { VISUAL_THEMES } from './visualTheme'
+import { genEquationForSkill, skillOperation, skillRange } from './skills'
+import { storyText } from './story'
 
 // ---------------------------------------------------------------------------
 // 工具函数
@@ -172,15 +176,31 @@ export interface GenerateOneOptions {
   patterns: QuestionPattern[]
   // 难度系数 0~1，越大越倾向较大数字（用于练习过程中轻微递增）
   difficulty?: number
+  // 第二版：高级细分技能（提供则按技能约束生成，覆盖 ranges 的粗粒度）
+  skillTags?: SkillTag[]
 }
 
 export function generateQuestion(opts: GenerateOneOptions): Question {
-  const { ranges, patterns } = opts
+  const { ranges, patterns, skillTags } = opts
 
-  // 选一个范围 → 决定运算与上限
-  const range = pick(ranges)
-  const op = rangeOperation(range)
-  const max = rangeMax(range)
+  let op: Operation
+  let max: 10 | 20
+  let eq: ReturnType<typeof generateEquation>
+  let skill: SkillTag | undefined
+
+  if (skillTags && skillTags.length > 0) {
+    // 技能模式：先选一个技能，决定运算/范围/约束等式
+    skill = pick(skillTags)
+    op = skillOperation(skill)
+    max = skillRange(skill)
+    eq = genEquationForSkill(skill)
+  } else {
+    // 粗粒度模式（v1 行为）
+    const range = pick(ranges)
+    op = rangeOperation(range)
+    max = rangeMax(range)
+    eq = generateEquation(op, max)
+  }
 
   // 在与该运算匹配、且用户已选的题型中按权重挑选
   const matchingPatterns = patterns.filter((p) => patternOperation(p) === op)
@@ -188,7 +208,6 @@ export function generateQuestion(opts: GenerateOneOptions): Question {
     matchingPatterns.length > 0 ? matchingPatterns : defaultPatternsForOp(op),
   )
 
-  const eq = generateEquation(op, max)
   const blanked = applyPattern(eq, pattern)
 
   return {
@@ -204,6 +223,7 @@ export function generateQuestion(opts: GenerateOneOptions): Question {
     fullRight: eq.right,
     fullResult: eq.result,
     visualTheme: pickTheme(),
+    skill,
   }
 }
 
@@ -221,9 +241,20 @@ function defaultPatternsForOp(op: Operation): QuestionPattern[] {
  * 根据设置生成一整套练习题。
  * - 难度随进度轻微递增；第一题更简单
  * - 避免连续两题完全相同的数字组合 + 题型
+ * - 第二版：支持细分技能（skillTags）与呈现格式（questionFormats：算式/图片/故事）
  */
-export function generateQuestions(settings: PracticeSettings): Question[] {
+export function generateQuestions(
+  settings: PracticeSettings & {
+    skillTags?: SkillTag[]
+    questionFormats?: QuestionFormat[]
+  },
+): Question[] {
   const { selectedRanges, selectedPatterns, questionCount } = settings
+  const skillTags = settings.skillTags ?? []
+  const formats: QuestionFormat[] =
+    settings.questionFormats && settings.questionFormats.length > 0
+      ? settings.questionFormats
+      : ['equation']
 
   // 兜底：保证至少有可用的范围与题型
   const ranges =
@@ -235,7 +266,7 @@ export function generateQuestions(settings: PracticeSettings): Question[] {
 
   for (let i = 0; i < questionCount; i++) {
     const difficulty = questionCount > 1 ? i / (questionCount - 1) : 0
-    let q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty })
+    let q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty, skillTags })
 
     // 尝试避免与上一题相同、以及整套重复
     let guard = 0
@@ -243,14 +274,25 @@ export function generateQuestions(settings: PracticeSettings): Question[] {
       guard < 30 &&
       (signatureOf(q) === lastSig || seen.has(signatureOf(q)))
     ) {
-      q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty })
+      q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty, skillTags })
       guard++
     }
 
     lastSig = signatureOf(q)
     seen.add(lastSig)
-    result.push(q)
+    result.push(applyFormat(q, pick(formats)))
   }
 
   return result
+}
+
+// 给题目附加呈现格式与故事文案
+function applyFormat(q: Question, format: QuestionFormat): Question {
+  if (format === 'story') {
+    return { ...q, format, story: storyText(q) }
+  }
+  if (format === 'picture') {
+    return { ...q, format }
+  }
+  return { ...q, format: 'equation' }
 }

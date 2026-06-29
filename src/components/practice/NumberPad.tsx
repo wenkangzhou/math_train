@@ -57,16 +57,16 @@ export function NumberPad({
           onClick={onClear}
           disabled={disabled || entered === null}
           aria-label="清除"
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-slate-100 py-4 text-lg font-bold text-slate-500 ring-2 ring-slate-200 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:opacity-40 md:py-6 md:text-2xl"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-slate-100 py-4 text-lg font-bold text-slate-500 ring-2 ring-slate-200 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:opacity-40 md:py-6 md:text-2xl ipad-land:py-3 ipad-land:text-base"
         >
-          <Delete size={22} /> 清除
+          <Delete size={22} className="ipad-land:h-5 ipad-land:w-5" /> 清除
         </motion.button>
         <motion.button
           type="button"
           whileTap={{ scale: 0.95 }}
           onClick={onConfirm}
           disabled={disabled || entered === null}
-          className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-grass py-4 text-xl font-extrabold text-white shadow-soft transition hover:brightness-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-grass/60 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-6 md:text-3xl"
+          className="flex flex-[2] items-center justify-center gap-2 rounded-full bg-grass py-4 text-xl font-extrabold text-white shadow-soft transition hover:brightness-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-grass/60 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-6 md:text-3xl ipad-land:py-3.5 ipad-land:text-lg"
         >
           <Check size={24} strokeWidth={3} /> 确定
         </motion.button>

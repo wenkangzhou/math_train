@@ -23,4 +23,5 @@ screenshots
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+# TypeScript build info
+tsconfig.tsbuildinfo

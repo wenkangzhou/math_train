@@ -59,25 +59,25 @@ export function PracticeHeader({
 
       {/* 进度条：一眼看懂的火车旅程 */}
       <div
-        className="mt-3 rounded-[22px] border border-white/80 bg-white/60 px-4 pb-3 pt-2.5 shadow-soft backdrop-blur-sm ipad-land:mt-2 ipad-land:px-3 ipad-land:pb-2 ipad-land:pt-2"
+        className="mt-3 rounded-[24px] border border-white/80 bg-white/60 px-5 pb-4 pt-3 shadow-soft backdrop-blur-sm ipad-land:mt-2 ipad-land:px-5 ipad-land:pb-3 ipad-land:pt-3"
         aria-label={`第 ${current} 题，共 ${total} 题，还需完成 ${questionsToFinish} 题`}
         role="progressbar"
         aria-valuemin={1}
         aria-valuemax={total}
         aria-valuenow={current}
       >
-        <div className="flex items-center justify-between gap-3 text-xs font-extrabold">
+        <div className="flex items-center justify-between gap-3 text-sm font-extrabold sm:text-base">
           <span className="flex items-center gap-1.5 text-sky-700">
             <span aria-hidden="true">🚉</span>
             第 {current} 站
           </span>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-700 ipad-land:py-0.5">
+          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-sm text-amber-700">
             {questionsToFinish === 1 ? '下一站就是终点' : `再答 ${questionsToFinish} 题到终点`}
           </span>
         </div>
 
-        <div className="relative mt-2 h-9 ipad-land:mt-1.5 ipad-land:h-8">
-          <div className="absolute inset-x-1 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-sky-100 shadow-inner">
+        <div className="relative mt-2 h-12 ipad-land:mt-2 ipad-land:h-11">
+          <div className="absolute inset-x-1 top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded-full bg-sky-100 shadow-inner">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
               initial={false}
@@ -95,7 +95,7 @@ export function PracticeHeader({
               return (
                 <span
                   key={`station-${index + 1}`}
-                  className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${
+                  className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${
                     isCurrent
                       ? 'z-10 scale-125 bg-coral ring-2 ring-coral/20'
                       : isReached
@@ -110,11 +110,11 @@ export function PracticeHeader({
           </div>
 
           <motion.div
-            className="absolute -top-0.5 z-20 ipad-land:-top-1"
+            className="absolute -top-0.5 z-20"
             initial={false}
             animate={{
-              left: `clamp(0px, calc(${progress}% - 17px), calc(100% - 34px))`,
-              y: [0, -1.5, 0],
+              left: `clamp(0px, calc(${progress}% - 23px), calc(100% - 46px))`,
+              y: [0, -2, 0],
             }}
             transition={{
               left: { duration: 0.5, ease: 'easeOut' },
@@ -122,7 +122,7 @@ export function PracticeHeader({
             }}
             aria-hidden="true"
           >
-            <TrainMascot mood="happy" size={34} />
+            <TrainMascot mood="happy" size={46} />
           </motion.div>
         </div>
       </div>

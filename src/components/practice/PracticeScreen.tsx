@@ -7,6 +7,7 @@ import type {
   PracticeSettings,
   Question,
 } from '@/types/math'
+import type { SpeechRate } from '@/types/profile'
 import { PracticeHeader } from './PracticeHeader'
 import { QuestionCard } from './QuestionCard'
 import { PictureQuestion } from '@/features/questions/PictureQuestion'
@@ -24,7 +25,12 @@ type HintPanel = 'none' | 'picture' | 'numberline' | 'drag'
 
 interface PracticeScreenProps {
   questions: Question[]
-  settings: PracticeSettings & { soundEnabled?: boolean }
+  settings: PracticeSettings & {
+    soundEnabled?: boolean
+    autoReadQuestion?: boolean
+    autoReadFeedback?: boolean
+    speechRate?: SpeechRate
+  }
   onComplete: (result: PracticeResult) => void
   onExit: () => void
 }
@@ -70,6 +76,7 @@ export function PracticeScreen({
   const question = questions[index]
   const total = questions.length
   const maxDigit = question?.range ?? 10
+  const speechRate = settings.speechRate ?? 'normal'
   // 提示等级随答错次数提升（最高 3）
   const hintLevel = Math.min(attempts + (usedHint ? 1 : 0), 3) || 1
 
@@ -122,10 +129,12 @@ export function PracticeScreen({
 
     if (correct) {
       const firstTry = attempts === 0
+      const message = pick(CORRECT_MSGS)
       setLocked(true)
       setFeedback('correct')
-      setFeedbackMsg(pick(CORRECT_MSGS))
+      setFeedbackMsg(message)
       playCorrect()
+      if (settings.autoReadFeedback) speak(message, speechRate)
 
       recordsRef.current.push({
         questionId: question.id,
@@ -152,11 +161,13 @@ export function PracticeScreen({
     } else {
       wrongAnswersRef.current.push(entered)
       const nextAttempts = attempts + 1
+      const message = pick(WRONG_MSGS)
       setAttempts(nextAttempts)
       setStreak(0)
       setFeedback('wrong')
-      setFeedbackMsg(pick(WRONG_MSGS))
+      setFeedbackMsg(message)
       playWrong()
+      if (settings.autoReadFeedback) speak(message, speechRate)
       if (settings.showHintAfterWrongAnswer) {
         setShowHint('picture')
         setUsedHint(true)
@@ -175,6 +186,8 @@ export function PracticeScreen({
     attempts,
     usedHint,
     settings.showHintAfterWrongAnswer,
+    settings.autoReadFeedback,
+    speechRate,
     advance,
   ])
 
@@ -220,8 +233,8 @@ export function PracticeScreen({
     if (!question) return
     setUsedHint(true)
     // 故事题优先朗读故事，否则朗读算式
-    speak(question.story ?? questionToSpeech(question))
-  }, [question])
+    speak(question.story ?? questionToSpeech(question), speechRate)
+  }, [question, speechRate])
 
   // 离开练习页时停止朗读
   useEffect(() => cancelSpeech, [])
@@ -230,12 +243,27 @@ export function PracticeScreen({
     setSoundEnabled(settings.soundEnabled ?? true)
   }, [settings.soundEnabled])
 
+  useEffect(() => {
+    if (!question || !settings.autoReadQuestion) return
+    const timer = window.setTimeout(() => {
+      speak(question.story ?? questionToSpeech(question), speechRate)
+    }, 280)
+    return () => {
+      window.clearTimeout(timer)
+      cancelSpeech()
+    }
+  }, [question, settings.autoReadQuestion, speechRate])
+
   const currentNumber = useMemo(() => index + 1, [index])
 
   if (!question) return null
 
   return (
-    <div className="mx-auto flex min-h-screen-safe max-w-3xl flex-col px-4 pb-6 pt-3 sm:px-6 ipad-land:max-w-6xl ipad-land:px-8 ipad-land:pb-5 ipad-land:pt-4">
+    <div
+      className="mx-auto flex min-h-screen-safe max-w-3xl flex-col px-4 pb-6 pt-3 sm:px-6 ipad-land:max-w-6xl ipad-land:px-8 ipad-land:pb-5 ipad-land:pt-4"
+      data-auto-read-question={Boolean(settings.autoReadQuestion)}
+      data-auto-read-feedback={Boolean(settings.autoReadFeedback)}
+    >
       <PracticeHeader
         current={currentNumber}
         total={total}
@@ -307,12 +335,12 @@ export function PracticeScreen({
                   className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[360px] ipad-land:p-2"
                 >
                   {showHint === 'picture' && (
-                    <VisualHint question={question} level={hintLevel} />
+                    <VisualHint key={question.id} question={question} level={hintLevel} />
                   )}
                   {showHint === 'numberline' && (
-                    <NumberLineHint question={question} />
+                    <NumberLineHint key={question.id} question={question} />
                   )}
-                  {showHint === 'drag' && <DragHint question={question} />}
+                  {showHint === 'drag' && <DragHint key={question.id} question={question} />}
                 </motion.div>
               )}
             </AnimatePresence>

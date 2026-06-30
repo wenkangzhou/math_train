@@ -41,6 +41,8 @@ describe('v1 → v2 数据迁移', () => {
     expect(s.settingsByProfile[pid].autoShowVisualHint).toBe(true)
     expect(s.settingsByProfile[pid].speechRate).toBe(DEFAULT_PROFILE_SETTINGS.speechRate)
     expect(s.settingsByProfile[pid].soundEnabled).toBe(true)
+    expect(s.settingsByProfile[pid].autoReadQuestion).toBe(true)
+    expect(s.settingsByProfile[pid].autoReadFeedback).toBe(true)
 
     // 历史
     expect(s.historyByProfile[pid]).toHaveLength(2)
@@ -106,6 +108,16 @@ describe('normalizeAppStorage 防御', () => {
     expect(s.profiles).toHaveLength(1)
     const pid = s.profiles[0].id
     expect(s.rewardsByProfile[pid].unlockedCarriages.length).toBeGreaterThan(0)
+  })
+
+  it('旧版已下架车头会安全回退到默认机车', () => {
+    const old = createFreshStorage()
+    const pid = old.profiles[0].id
+    old.rewardsByProfile[pid].selectedHead = 'head-red'
+
+    const normalized = normalizeAppStorage(old)
+
+    expect(normalized.rewardsByProfile[pid].selectedHead).toBe('head-classic')
   })
 })
 
@@ -183,7 +195,7 @@ describe('练习结算、奖励与长期错题', () => {
   it('累计星星跨过阈值时返回新解锁车厢', () => {
     const storage = createFreshStorage()
     const pid = storage.profiles[0].id
-    storage.rewardsByProfile[pid].stars = 9
+    storage.rewardsByProfile[pid].stars = 49
 
     const unlocked = applyLearningResult(storage, {
       profileId: pid,
@@ -191,7 +203,7 @@ describe('练习结算、奖励与长期错题', () => {
       result: result({ firstTry: true }),
     })
 
-    expect(storage.rewardsByProfile[pid].stars).toBe(10)
-    expect(unlocked.map((item) => item.id)).toContain('car-num-2')
+    expect(storage.rewardsByProfile[pid].stars).toBe(50)
+    expect(unlocked.map((item) => item.id)).toContain('engine-red-express')
   })
 })

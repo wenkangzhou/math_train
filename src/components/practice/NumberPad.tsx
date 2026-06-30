@@ -35,12 +35,13 @@ export function NumberPad({
               whileTap={disabled ? undefined : { scale: 0.9 }}
               onClick={() => onPick(n)}
               aria-label={`数字 ${n}`}
+              data-selected={active}
               className={[
-                'flex aspect-[1.15] min-h-[60px] items-center justify-center rounded-2xl text-2xl font-extrabold transition sm:text-3xl md:min-h-[68px] md:text-4xl ipad-land:min-h-[66px] ipad-land:rounded-[20px] ipad-land:text-3xl',
+                'number-pad-key flex aspect-[1.15] min-h-[60px] items-center justify-center rounded-2xl text-2xl font-extrabold transition sm:text-3xl md:min-h-[68px] md:text-4xl ipad-land:min-h-[66px] ipad-land:rounded-[20px] ipad-land:text-3xl',
                 'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
                 active
                   ? 'bg-sky text-white shadow-soft ring-4 ring-sky-deep'
-                  : 'bg-white text-slate-700 shadow-pop ring-1 ring-slate-200 hover:bg-sky-soft/40',
+                  : 'bg-white text-slate-700 shadow-pop ring-1 ring-slate-200',
                 disabled ? 'opacity-50' : '',
               ].join(' ')}
             >

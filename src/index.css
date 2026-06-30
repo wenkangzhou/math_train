@@ -39,6 +39,13 @@ button {
   touch-action: manipulation;
 }
 
+/* iPad Safari 会把触摸后的 :hover 黏住；数字键 hover 只开放给真正的鼠标。 */
+@media (hover: hover) and (pointer: fine) {
+  .number-pad-key:not([data-selected='true']):not(:disabled):hover {
+    background-color: rgb(191 230 255 / 0.4);
+  }
+}
+
 /* 圆润、粗壮的算式数字 */
 .font-digit {
   font-family: 'Baloo 2', 'PingFang SC', system-ui, sans-serif;

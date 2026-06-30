@@ -30,7 +30,11 @@ import {
   V1_HISTORY_KEY,
   V1_SETTINGS_KEY,
 } from './migrations'
-import { carriagesUnlockedByStars, getCarriage } from './carriages'
+import {
+  DEFAULT_HEAD_ID,
+  carriagesUnlockedByStars,
+  getCarriage,
+} from './carriages'
 import { dayDiff, todayStr } from './date'
 import { genId } from './id'
 
@@ -135,6 +139,11 @@ export function normalizeAppStorage(raw: unknown): AppStorage {
     // 星星数是奖励解锁的事实来源；修复旧数据中星星足够但车厢未补齐的情况。
     const unlocked = carriagesUnlockedByStars(out.rewardsByProfile[p.id].stars)
     out.rewardsByProfile[p.id].unlockedCarriages = unlocked
+    const savedHead = getCarriage(out.rewardsByProfile[p.id].selectedHead)
+    out.rewardsByProfile[p.id].selectedHead =
+      savedHead && unlocked.includes(savedHead.id)
+        ? savedHead.id
+        : DEFAULT_HEAD_ID
     const savedOrder = Array.isArray(out.rewardsByProfile[p.id].trainOrder)
       ? out.rewardsByProfile[p.id].trainOrder
       : []

@@ -7,7 +7,7 @@ type ItemState = 'solid' | 'faded' | 'ghost' | 'new'
 
 interface VisualHintProps {
   question: Question
-  // 提示等级：1 仅显示数量；2 显示序号；3 显示数数过程
+  // 提示等级只控制讲解深度；物品下标始终由孩子点按后显示。
   level?: number
 }
 
@@ -16,12 +16,10 @@ function Item({
   emoji,
   state,
   index,
-  showIndex,
 }: {
   emoji: string
   state: ItemState
   index: number
-  showIndex: boolean
 }) {
   const [tapped, setTapped] = useState(false)
 
@@ -45,7 +43,8 @@ function Item({
       transition={{ type: 'spring', stiffness: 300, damping: 18, delay: index * 0.04 }}
       onClick={() => setTapped((t) => !t)}
       className="relative inline-flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14 ipad-land:h-10 ipad-land:w-10"
-      aria-hidden="true"
+      aria-label={`第 ${index + 1} 个，点一下${tapped ? '隐藏' : '显示'}序号`}
+      aria-pressed={tapped}
     >
       <span
         className={[
@@ -56,7 +55,7 @@ function Item({
       >
         {emoji}
       </span>
-      {(showIndex || tapped) && state !== 'faded' && (
+      {tapped && state !== 'faded' && (
         <span className="absolute -bottom-1 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-sky text-[11px] font-bold text-white">
           {index + 1}
         </span>
@@ -69,24 +68,21 @@ function Group({
   count,
   state,
   emoji,
-  showIndex,
   startIndex = 0,
 }: {
   count: number
   state: ItemState
   emoji: string
-  showIndex: boolean
   startIndex?: number
 }) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-1 ipad-land:gap-0.5">
       {Array.from({ length: count }, (_, i) => (
         <Item
-          key={i}
+          key={startIndex + i}
           emoji={emoji}
           state={state}
           index={startIndex + i}
-          showIndex={showIndex}
         />
       ))}
     </div>
@@ -102,7 +98,6 @@ const Divider = ({ symbol }: { symbol: string }) => (
 export function VisualHint({ question, level = 1 }: VisualHintProps) {
   const emoji = themeEmoji(question.visualTheme)
   const { fullLeft, fullRight, fullResult, pattern } = question
-  const showIndex = level >= 2
 
   let body: React.ReactNode = null
   let text = ''
@@ -112,9 +107,9 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
     case 'a-plus-b-equals-blank': {
       body = (
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Group count={fullLeft} state="solid" emoji={emoji} showIndex={showIndex} />
+          <Group count={fullLeft} state="solid" emoji={emoji} />
           <Divider symbol="+" />
-          <Group count={fullRight} state="solid" emoji={emoji} showIndex={showIndex} startIndex={fullLeft} />
+          <Group count={fullRight} state="solid" emoji={emoji} startIndex={fullLeft} />
         </div>
       )
       text = `先数一数左边 ${fullLeft} 个，再把右边 ${fullRight} 个也加进来。`
@@ -126,8 +121,8 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
       const remain = fullLeft - fullRight
       body = (
         <div className="flex flex-wrap items-center justify-center gap-1">
-          <Group count={remain} state="solid" emoji={emoji} showIndex={showIndex} />
-          <Group count={fullRight} state="faded" emoji={emoji} showIndex={false} startIndex={remain} />
+          <Group count={remain} state="solid" emoji={emoji} />
+          <Group count={fullRight} state="faded" emoji={emoji} startIndex={remain} />
         </div>
       )
       text = `一共有 ${fullLeft} 个，开走了 ${fullRight} 个，还剩几个？`
@@ -141,12 +136,12 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2">
             <span className="w-14 text-right text-sm font-semibold text-slate-500">已有</span>
-            <Group count={fullLeft} state="solid" emoji={emoji} showIndex={showIndex} />
+            <Group count={fullLeft} state="solid" emoji={emoji} />
           </div>
           <div className="flex items-center justify-center gap-2">
             <span className="w-14 text-right text-sm font-semibold text-slate-500">目标</span>
-            <Group count={fullLeft} state="solid" emoji={emoji} showIndex={false} />
-            <Group count={missing} state="ghost" emoji={emoji} showIndex={false} />
+            <Group count={fullLeft} state="solid" emoji={emoji} />
+            <Group count={missing} state="ghost" emoji={emoji} />
           </div>
         </div>
       )
@@ -159,9 +154,9 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
       const unknown = fullResult - fullRight
       body = (
         <div className="flex flex-wrap items-center justify-center gap-1">
-          <Group count={unknown} state="solid" emoji={emoji} showIndex={showIndex} />
+          <Group count={unknown} state="solid" emoji={emoji} />
           <Divider symbol="+" />
-          <Group count={fullRight} state="new" emoji={emoji} showIndex={false} startIndex={unknown} />
+          <Group count={fullRight} state="new" emoji={emoji} startIndex={unknown} />
         </div>
       )
       text = `原来有几个，又来了 ${fullRight} 个，一共是 ${fullResult} 个？`
@@ -175,12 +170,12 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2">
             <span className="w-14 text-right text-sm font-semibold text-slate-500">原来</span>
-            <Group count={fullResult} state="solid" emoji={emoji} showIndex={false} />
-            <Group count={removed} state="faded" emoji={emoji} showIndex={false} startIndex={fullResult} />
+            <Group count={fullResult} state="solid" emoji={emoji} />
+            <Group count={removed} state="faded" emoji={emoji} startIndex={fullResult} />
           </div>
           <div className="flex items-center justify-center gap-2">
             <span className="w-14 text-right text-sm font-semibold text-slate-500">剩下</span>
-            <Group count={fullResult} state="solid" emoji={emoji} showIndex={showIndex} />
+            <Group count={fullResult} state="solid" emoji={emoji} />
           </div>
         </div>
       )
@@ -192,9 +187,9 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
     case 'blank-minus-b-equals-c': {
       body = (
         <div className="flex flex-wrap items-center justify-center gap-1">
-          <Group count={fullResult} state="solid" emoji={emoji} showIndex={showIndex} />
+          <Group count={fullResult} state="solid" emoji={emoji} />
           <Divider symbol="+" />
-          <Group count={fullRight} state="faded" emoji={emoji} showIndex={false} startIndex={fullResult} />
+          <Group count={fullRight} state="faded" emoji={emoji} startIndex={fullResult} />
         </div>
       )
       text = `开走了 ${fullRight} 个，还剩 ${fullResult} 个。把它们合起来，原来有几个？`

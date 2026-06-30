@@ -2,7 +2,7 @@
 // 通过「摆一摆」理解加减法。支持鼠标 / 触摸 / iPad；点按为拖拽兜底。
 // 仅作视觉辅助，答案仍由数字键盘选择（PRD 4.3「不直接自动提交」）。
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { Question } from '@/types/math'
 import { themeEmoji } from '@/lib/visualTheme'
@@ -89,7 +89,13 @@ function DraggableItem({
   onPlaced: () => void
 }) {
   const draggedRef = useRef(false)
+  const committedRef = useRef(false)
   const itemRef = useRef<HTMLDivElement>(null)
+  const commitPlacement = () => {
+    if (committedRef.current) return
+    committedRef.current = true
+    onPlaced()
+  }
 
   return (
     <motion.div
@@ -122,7 +128,7 @@ function DraggableItem({
           }
         }
         if (hit) {
-          onPlaced()
+          commitPlacement()
         }
         // 稍后复位标记，避免拖拽结束误触发 click
         window.setTimeout(() => {
@@ -131,7 +137,12 @@ function DraggableItem({
       }}
       onClick={() => {
         if (draggedRef.current) return
-        onPlaced()
+        commitPlacement()
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        commitPlacement()
       }}
       whileDrag={{ scale: 1.25, zIndex: 50 }}
       whileTap={{ scale: 1.1 }}
@@ -148,17 +159,14 @@ function DraggableItem({
 // 静态物品（已放置 / 预置）
 function StaticItem({ emoji, faded }: { emoji: string; faded?: boolean }) {
   return (
-    <motion.span
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 18 }}
+    <span
       className={[
         'inline-flex h-12 w-12 items-center justify-center text-3xl sm:h-14 sm:w-14 sm:text-4xl ipad-land:h-10 ipad-land:w-10 ipad-land:text-2xl',
         faded ? 'opacity-40 grayscale' : '',
       ].join(' ')}
     >
       {emoji}
-    </motion.span>
+    </span>
   )
 }
 
@@ -176,10 +184,6 @@ export function DragHint({ question }: DragHintProps) {
   const sc = useMemo(() => buildScenario(question), [question])
   const [placed, setPlaced] = useState(0)
   const targetRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setPlaced(0)
-  }, [question.id])
 
   const movable =
     sc.mode === 'combine' ? sc.groupB : sc.mode === 'fill' ? sc.groupB : sc.remove
@@ -212,7 +216,12 @@ export function DragHint({ question }: DragHintProps) {
             <p className="mb-1 text-center text-sm font-semibold text-slate-500">这里</p>
             <div className={`${tray} bg-sky-soft/40`}>
               {Array.from({ length: remaining }, (_, i) => (
-                <DraggableItem key={i} emoji={emoji} targetRef={targetRef} onPlaced={place} />
+                <DraggableItem
+                  key={`${question.id}-take-${placed}-${i}`}
+                  emoji={emoji}
+                  targetRef={targetRef}
+                  onPlaced={place}
+                />
               ))}
             </div>
           </div>
@@ -222,7 +231,7 @@ export function DragHint({ question }: DragHintProps) {
             <p className="mb-1 text-center text-sm font-semibold text-coral">开走啦</p>
             <div ref={targetRef} className={`${tray} border-2 border-dashed border-coral/40 bg-coral/5`}>
               {Array.from({ length: placed }, (_, i) => (
-                <StaticItem key={i} emoji={emoji} faded />
+                <StaticItem key={`${question.id}-gone-${i}`} emoji={emoji} faded />
               ))}
             </div>
           </div>
@@ -261,7 +270,12 @@ export function DragHint({ question }: DragHintProps) {
       </p>
       <div className={`${tray} bg-sky-soft/30`}>
         {Array.from({ length: remaining }, (_, i) => (
-          <DraggableItem key={i} emoji={emoji} targetRef={targetRef} onPlaced={place} />
+          <DraggableItem
+            key={`${question.id}-source-${placed}-${i}`}
+            emoji={emoji}
+            targetRef={targetRef}
+            onPlaced={place}
+          />
         ))}
         {remaining === 0 && (
           <span className="text-sm text-slate-400">都拖好啦 🎉</span>

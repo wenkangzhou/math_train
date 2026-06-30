@@ -21,6 +21,7 @@ import type {
   StoredHistory,
 } from '@/types/math'
 import type { RewardState } from '@/types/rewards'
+import type { SpeechRate } from '@/types/profile'
 import type { WrongQuestionRecord } from '@/types/storage'
 import {
   ADDITION_PATTERNS,
@@ -41,11 +42,14 @@ export type StartSettings = PracticeSettings & {
   questionFormats: QuestionFormat[]
   skillTags: SkillTag[]
   soundEnabled: boolean
+  autoReadQuestion: boolean
+  autoReadFeedback: boolean
+  speechRate: SpeechRate
 }
 
 interface SetupScreenProps {
   initialSettings: PracticeSettings &
-    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled'>>
+    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate'>>
   history: StoredHistory
   reward: RewardState
   wrongRecords: WrongQuestionRecord[]
@@ -97,6 +101,12 @@ export function SetupScreen({
   )
   const [soundEnabled, setSoundEnabled] = useState(
     initialSettings.soundEnabled ?? true,
+  )
+  const [autoReadQuestion, setAutoReadQuestion] = useState(
+    initialSettings.autoReadQuestion ?? true,
+  )
+  const [autoReadFeedback, setAutoReadFeedback] = useState(
+    initialSettings.autoReadFeedback ?? true,
   )
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [rewardOpen, setRewardOpen] = useState(false)
@@ -197,6 +207,9 @@ export function SetupScreen({
       questionFormats: formats,
       skillTags,
       soundEnabled,
+      autoReadQuestion,
+      autoReadFeedback,
+      speechRate: initialSettings.speechRate ?? 'normal',
     })
   }
 
@@ -334,7 +347,7 @@ export function SetupScreen({
               <span className="min-w-0">
                 <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">我的小火车</span>
                 <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
-                  已解锁 {reward.unlockedCarriages.length} 节
+                  已解锁 {reward.unlockedCarriages.length} 辆
                 </span>
               </span>
             </button>
@@ -408,9 +421,13 @@ export function SetupScreen({
               autoShowVisualHint={autoShowVisualHint}
               showHintAfterWrongAnswer={showHintAfterWrong}
               soundEnabled={soundEnabled}
+              autoReadQuestion={autoReadQuestion}
+              autoReadFeedback={autoReadFeedback}
               onChangeAutoShow={setAutoShow}
               onChangeAfterWrong={setAfterWrong}
               onChangeSound={setSoundEnabled}
+              onChangeAutoReadQuestion={setAutoReadQuestion}
+              onChangeAutoReadFeedback={setAutoReadFeedback}
             />
           </SectionCard>
 

@@ -53,7 +53,7 @@ export function ResultActions({
       />
       {hasWrong && (
         <ActionButton
-          label="练习错题"
+          label="马上订正"
           icon={<BookOpen size={22} />}
           onClick={onPracticeWrong}
         />

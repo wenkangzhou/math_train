@@ -6,7 +6,7 @@ import type {
   Question,
   StoredHistory,
 } from '@/types/math'
-import type { Carriage } from '@/types/rewards'
+import type { Carriage, RouteReward } from '@/types/rewards'
 import { generateQuestions } from '@/lib/questionGenerator'
 import {
   DEFAULT_SETTINGS,
@@ -30,6 +30,7 @@ import {
   DEFAULT_PROFILE_SETTINGS,
   createDefaultRewardState,
 } from '@/lib/defaults'
+import { isReviewDue } from '@/lib/spacedReview'
 
 type Screen = 'setup' | 'practice' | 'result'
 
@@ -45,6 +46,7 @@ export default function App() {
   const [history, setHistory] = useState<StoredHistory>(() => loadHistory())
   const [learningData, setLearningData] = useState(() => loadAppStorage())
   const [newlyUnlocked, setNewlyUnlocked] = useState<Carriage[]>([])
+  const [routeReward, setRouteReward] = useState<RouteReward | null>(null)
 
   const profileId =
     learningData.activeProfileId ?? learningData.profiles[0]?.id ?? ''
@@ -52,6 +54,7 @@ export default function App() {
     learningData.rewardsByProfile[profileId] ??
     createDefaultRewardState(history.totalStars)
   const wrongRecords = learningData.wrongQuestionsByProfile[profileId] ?? []
+  const practiceHistory = learningData.historyByProfile[profileId] ?? []
 
   // 初始化：读取本地设置与累计星星
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function App() {
       setQuestions(qs)
       setResult(null)
       setNewlyUnlocked([])
+      setRouteReward(null)
       setScreen('practice')
     },
     [profileId],
@@ -112,6 +116,7 @@ export default function App() {
       })
       setLearningData(learningUpdate.storage)
       setNewlyUnlocked(learningUpdate.newlyUnlocked)
+      setRouteReward(learningUpdate.routeReward)
     }
     setResult(res)
     setScreen('result')
@@ -138,8 +143,8 @@ export default function App() {
 
   const handlePracticeSavedWrong = useCallback(() => {
     const pendingQuestions = wrongRecords
-      .filter((item) => !item.mastered)
-      .sort((a, b) => a.lastPracticedAt.localeCompare(b.lastPracticedAt))
+      .filter((item) => isReviewDue(item))
+      .sort((a, b) => a.nextReviewAt.localeCompare(b.nextReviewAt))
       .slice(0, 10)
       .map((item) => item.question)
     if (pendingQuestions.length === 0) return
@@ -173,6 +178,7 @@ export default function App() {
             <SetupScreen
               initialSettings={settings}
               history={history}
+              practiceHistory={practiceHistory}
               reward={reward}
               wrongRecords={wrongRecords}
               onStart={handleStart}
@@ -193,6 +199,7 @@ export default function App() {
             <PracticeScreen
               questions={questions}
               settings={settings}
+              reward={reward}
               onComplete={handleComplete}
               onExit={handleExit}
             />
@@ -211,6 +218,7 @@ export default function App() {
               result={result}
               totalStars={reward.stars}
               newlyUnlocked={newlyUnlocked}
+              routeReward={routeReward}
               onReplay={handleReplay}
               onPracticeWrong={handlePracticeWrong}
               onReconfigure={handleReconfigure}

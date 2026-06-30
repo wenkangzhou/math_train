@@ -139,6 +139,8 @@ export interface StoredHistory {
 export interface PracticeResult {
   questions: Question[]
   records: AnswerRecord[]
+  // 从进入答题页到完成本轮练习的连续用时。
+  durationMs: number
   stars: number
   correctCount: number
   total: number

@@ -10,9 +10,14 @@ node_modules
 dist
 dist-ssr
 *.local
+__pycache__/
+*.pyc
 
 # 自查截图（Playwright 输出，不入库）
 screenshots
+
+# 本地语音盲听生成物（脚本和文案入库，音频不入库）
+voice-lab/audio/
 
 # Editor
 .vscode/*

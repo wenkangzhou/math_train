@@ -15,6 +15,7 @@ import {
   createProfile,
 } from './defaults'
 import { genId } from './id'
+import { createWrongReviewSchedule } from './spacedReview'
 
 // v1 的两个 localStorage key
 export const V1_SETTINGS_KEY = 'math-practice-settings'
@@ -60,7 +61,8 @@ export function mapV1History(
 // 把 v1 最近错题转成 v2 错题记录（初始状态：待练习）
 export function mapV1Wrong(qs: Question[] | undefined): WrongQuestionRecord[] {
   if (!Array.isArray(qs)) return []
-  const now = new Date().toISOString()
+  const nowDate = new Date()
+  const now = nowDate.toISOString()
   return qs
     .filter((q) => q && typeof q === 'object')
     .map((q) => ({
@@ -71,8 +73,7 @@ export function mapV1Wrong(qs: Question[] | undefined): WrongQuestionRecord[] {
       usedHint: false,
       createdAt: now,
       lastPracticedAt: now,
-      correctCountAfterWrong: 0,
-      mastered: false,
+      ...createWrongReviewSchedule(nowDate),
     }))
 }
 

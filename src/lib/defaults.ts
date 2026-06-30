@@ -39,6 +39,7 @@ export function createDefaultRewardState(initialStars = 0): RewardState {
     unlockedCarriages: unlocked,
     selectedHead: DEFAULT_HEAD_ID,
     trainOrder: unlocked,
+    routeTrips: {},
     streak: { current: 0, longest: 0, lastActiveDate: '' },
   }
 }

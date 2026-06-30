@@ -8,6 +8,7 @@ import type {
   Question,
 } from '@/types/math'
 import type { SpeechRate } from '@/types/profile'
+import type { RewardState } from '@/types/rewards'
 import { PracticeHeader } from './PracticeHeader'
 import { QuestionCard } from './QuestionCard'
 import { PictureQuestion } from '@/features/questions/PictureQuestion'
@@ -31,6 +32,7 @@ interface PracticeScreenProps {
     autoReadFeedback?: boolean
     speechRate?: SpeechRate
   }
+  reward: RewardState
   onComplete: (result: PracticeResult) => void
   onExit: () => void
 }
@@ -50,6 +52,7 @@ function pick<T>(arr: T[]): T {
 export function PracticeScreen({
   questions,
   settings,
+  reward,
   onComplete,
   onExit,
 }: PracticeScreenProps) {
@@ -72,6 +75,7 @@ export function PracticeScreen({
   const recordsRef = useRef<AnswerRecord[]>([])
   const wrongAnswersRef = useRef<number[]>([])
   const startTimeRef = useRef<number>(Date.now())
+  const sessionStartTimeRef = useRef<number>(Date.now())
 
   const question = questions[index]
   const total = questions.length
@@ -103,6 +107,7 @@ export function PracticeScreen({
     const result: PracticeResult = {
       questions,
       records,
+      durationMs: Math.max(0, Date.now() - sessionStartTimeRef.current),
       stars: correctCount,
       correctCount,
       total,
@@ -269,6 +274,7 @@ export function PracticeScreen({
         total={total}
         stars={stars}
         streak={streak}
+        reward={reward}
         onBack={() => setShowExit(true)}
       />
 

@@ -1,12 +1,17 @@
-import { motion } from 'framer-motion'
-import { ArrowLeft, Star, Flame } from 'lucide-react'
-import { TrainMascot } from '@/components/common/TrainMascot'
+import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { ArrowLeft, Flame, Star } from 'lucide-react'
+import type { RewardState } from '@/types/rewards'
+import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
+import { getTrainRoute } from '@/lib/trainRoutes'
+import { TrainEngineArt } from '@/components/rewards/TrainEngineArt'
 
 interface PracticeHeaderProps {
   current: number // 1-based
   total: number
   stars: number
   streak: number
+  reward: RewardState
   onBack: () => void
 }
 
@@ -15,11 +20,23 @@ export function PracticeHeader({
   total,
   stars,
   streak,
+  reward,
   onBack,
 }: PracticeHeaderProps) {
+  const reduceMotion = useReducedMotion()
+  const [trainMoving, setTrainMoving] = useState(false)
   const progress = total <= 1 ? 0 : Math.round(((current - 1) / (total - 1)) * 100)
   const stationCount = Math.min(Math.max(total, 2), 12)
   const questionsToFinish = Math.max(total - current + 1, 1)
+  const selectedTrain = getCarriage(reward.selectedHead) ?? CARRIAGE_CATALOG[0]
+  const currentRoute = getTrainRoute(selectedTrain.id)
+
+  useEffect(() => {
+    if (reduceMotion) return
+    setTrainMoving(true)
+    const timer = window.setTimeout(() => setTrainMoving(false), 650)
+    return () => window.clearTimeout(timer)
+  }, [current, reduceMotion, selectedTrain.id])
 
   return (
     <div className="w-full">
@@ -59,12 +76,7 @@ export function PracticeHeader({
 
       {/* 进度条：一眼看懂的火车旅程 */}
       <div
-        className="mt-3 rounded-[24px] border border-white/80 bg-white/60 px-5 pb-4 pt-3 shadow-soft backdrop-blur-sm ipad-land:mt-2 ipad-land:px-5 ipad-land:pb-3 ipad-land:pt-3"
-        aria-label={`第 ${current} 题，共 ${total} 题，还需完成 ${questionsToFinish} 题`}
-        role="progressbar"
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={current}
+        className="relative mt-3 rounded-[24px] border border-white/80 bg-white/60 px-5 pb-4 pt-3 shadow-soft backdrop-blur-sm ipad-land:mt-2 ipad-land:px-5 ipad-land:pb-3 ipad-land:pt-3"
       >
         <div className="flex items-center justify-between gap-3 text-sm font-extrabold sm:text-base">
           <span className="flex items-center gap-1.5 text-sky-700">
@@ -72,12 +84,21 @@ export function PracticeHeader({
             第 {current} 站
           </span>
           <span className="rounded-full bg-amber-100 px-3 py-1.5 text-sm text-amber-700">
-            {questionsToFinish === 1 ? '下一站就是终点' : `再答 ${questionsToFinish} 题到终点`}
+            {questionsToFinish === 1
+              ? `下一站：${currentRoute.destination}`
+              : `去${currentRoute.destination} · 还差 ${questionsToFinish} 站`}
           </span>
         </div>
 
-        <div className="relative mt-2 h-12 ipad-land:mt-2 ipad-land:h-11">
-          <div className="absolute inset-x-1 top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded-full bg-sky-100 shadow-inner">
+        <div className="relative mt-2 h-14 ipad-land:mt-1">
+          <div
+            className="absolute inset-x-1 top-1/2 h-2.5 -translate-y-1/2 overflow-hidden rounded-full bg-sky-100 shadow-inner"
+            aria-label={`第 ${current} 题，共 ${total} 题，还需完成 ${questionsToFinish} 题`}
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={total}
+            aria-valuenow={current}
+          >
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
               initial={false}
@@ -110,21 +131,25 @@ export function PracticeHeader({
           </div>
 
           <motion.div
-            className="absolute -top-0.5 z-20"
+            data-testid="practice-train-decoration"
+            className="pointer-events-none absolute -top-1 z-20 h-14 w-[70px]"
             initial={false}
             animate={{
-              left: `clamp(0px, calc(${progress}% - 23px), calc(100% - 46px))`,
-              y: [0, -2, 0],
+              left: `clamp(0px, calc(${progress}% - 35px), calc(100% - 70px))`,
+              y: reduceMotion ? 0 : [0, -1.5, 0],
             }}
             transition={{
               left: { duration: 0.5, ease: 'easeOut' },
-              y: { duration: 0.45, repeat: Infinity, ease: 'easeInOut' },
+              y: { duration: 0.7, repeat: Infinity, ease: 'easeInOut' },
             }}
             aria-hidden="true"
           >
-            <TrainMascot mood="happy" size={46} />
+            <span className="pointer-events-none absolute bottom-5 left-0 origin-bottom-left scale-[0.62] drop-shadow-md">
+              <TrainEngineArt item={selectedTrain} compact running={trainMoving} />
+            </span>
           </motion.div>
         </div>
+
       </div>
     </div>
   )

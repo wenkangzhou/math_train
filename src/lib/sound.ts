@@ -61,3 +61,12 @@ export function playTap(): void {
   if (!enabled) return
   tone(660, 0.06, 0, 'sine')
 }
+
+export function playTrainBell(): void {
+  if (!enabled) return
+  // 两次清脆的站台铃声，保留短尾音但不盖住语音。
+  tone(987.77, 0.42, 0, 'triangle')
+  tone(1318.51, 0.28, 0.04, 'sine')
+  tone(987.77, 0.38, 0.34, 'triangle')
+  tone(1318.51, 0.24, 0.38, 'sine')
+}

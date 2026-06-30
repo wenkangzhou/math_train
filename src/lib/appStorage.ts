@@ -11,8 +11,7 @@ import type {
   PracticeSettings,
   Question,
 } from '@/types/math'
-import type { RewardState } from '@/types/rewards'
-import type { Carriage } from '@/types/rewards'
+import type { Carriage, RewardState, RouteReward } from '@/types/rewards'
 import type {
   AppStorage,
   DailyProgress,
@@ -35,6 +34,12 @@ import {
   carriagesUnlockedByStars,
   getCarriage,
 } from './carriages'
+import { getTrainRoute, makeRouteReward, routeStampId } from './trainRoutes'
+import {
+  applySpacedReviewResult,
+  createWrongReviewSchedule,
+  normalizeWrongReviewRecord,
+} from './spacedReview'
 import { dayDiff, todayStr } from './date'
 import { genId } from './id'
 
@@ -119,7 +124,7 @@ export function normalizeAppStorage(raw: unknown): AppStorage {
     )
     out.wrongQuestionsByProfile[p.id] = asArray<WrongQuestionRecord>(
       wrongByProfile[p.id],
-    )
+    ).map((record) => normalizeWrongReviewRecord(record))
     const defaultReward = createDefaultRewardState(0)
     const savedReward = rewardsByProfile[p.id] ?? defaultReward
     out.rewardsByProfile[p.id] = {
@@ -131,6 +136,11 @@ export function normalizeAppStorage(raw: unknown): AppStorage {
       coins: Number.isFinite(savedReward.coins)
         ? Math.max(0, savedReward.coins)
         : 0,
+      routeTrips: Object.fromEntries(
+        Object.entries(asRecord<number>(savedReward.routeTrips))
+          .filter(([, count]) => Number.isFinite(count) && count > 0)
+          .map(([routeId, count]) => [routeId, Math.floor(count)]),
+      ),
       streak: {
         ...defaultReward.streak,
         ...(savedReward.streak ?? {}),
@@ -305,30 +315,41 @@ export interface LearningResultParams {
   profileId: string
   settings: PracticeSettings
   result: PracticeResult
+  now?: Date
 }
 
 export interface LearningResultUpdate {
   storage: AppStorage
   newlyUnlocked: Carriage[]
+  routeReward: RouteReward
+}
+
+export interface AppliedLearningRewards {
+  newlyUnlocked: Carriage[]
+  routeReward: RouteReward
 }
 
 // 纯数据更新，便于单测；会原地更新传入的 storage。
 export function applyLearningResult(
   storage: AppStorage,
-  { profileId, settings, result }: LearningResultParams,
-): Carriage[] {
-  const now = new Date()
+  { profileId, settings, result, now: providedNow }: LearningResultParams,
+): AppliedLearningRewards {
+  const now = providedNow ?? new Date()
   const nowIso = now.toISOString()
   const totalDuration = result.records.reduce(
     (sum, record) => sum + record.durationMs,
     0,
+  )
+  const sessionDuration = Math.max(
+    totalDuration,
+    Number.isFinite(result.durationMs) ? Math.max(0, result.durationMs) : 0,
   )
 
   const history = storage.historyByProfile[profileId] ?? []
   history.unshift({
     id: genId('hist'),
     profileId,
-    startedAt: new Date(now.getTime() - totalDuration).toISOString(),
+    startedAt: new Date(now.getTime() - sessionDuration).toISOString(),
     completedAt: nowIso,
     settings,
     totalQuestions: result.total,
@@ -356,6 +377,14 @@ export function applyLearningResult(
   reward.trainOrder = [
     ...new Set([...reward.trainOrder, ...reward.unlockedCarriages]),
   ].filter((id) => reward.unlockedCarriages.includes(id))
+
+  const route = getTrainRoute(reward.selectedHead)
+  const stampId = routeStampId(route.id)
+  const isNewStamp = !reward.stickers.includes(stampId)
+  const tripCount = (reward.routeTrips?.[route.id] ?? 0) + 1
+  reward.routeTrips = { ...(reward.routeTrips ?? {}), [route.id]: tripCount }
+  if (isNewStamp) reward.stickers = [...reward.stickers, stampId]
+  const routeReward = makeRouteReward(route, tripCount, isNewStamp)
 
   const today = todayStr()
   if (reward.streak.lastActiveDate !== today) {
@@ -403,9 +432,7 @@ export function applyLearningResult(
 
     if (answerRecord.isCorrect) {
       if (existing) {
-        existing.correctCountAfterWrong += 1
-        existing.mastered = existing.correctCountAfterWrong >= 2
-        existing.lastPracticedAt = nowIso
+        applySpacedReviewResult(existing, true, now)
       }
       continue
     }
@@ -418,9 +445,7 @@ export function applyLearningResult(
       ].slice(-8)
       existing.attempts += answerRecord.attempts
       existing.usedHint ||= answerRecord.usedHint
-      existing.lastPracticedAt = nowIso
-      existing.correctCountAfterWrong = 0
-      existing.mastered = false
+      applySpacedReviewResult(existing, false, now)
     } else {
       wrongBook.unshift({
         id: genId('wrong'),
@@ -430,26 +455,26 @@ export function applyLearningResult(
         usedHint: answerRecord.usedHint,
         createdAt: nowIso,
         lastPracticedAt: nowIso,
-        correctCountAfterWrong: 0,
-        mastered: false,
+        ...createWrongReviewSchedule(now),
       })
     }
   }
   storage.wrongQuestionsByProfile[profileId] = wrongBook.slice(0, 200)
 
-  return reward.unlockedCarriages
+  const newlyUnlocked = reward.unlockedCarriages
     .filter((id) => !beforeUnlocked.has(id))
     .map(getCarriage)
     .filter((item): item is Carriage => Boolean(item))
+  return { newlyUnlocked, routeReward }
 }
 
 export function recordLearningResult(
   params: LearningResultParams,
 ): LearningResultUpdate {
   const storage = loadAppStorage()
-  const newlyUnlocked = applyLearningResult(storage, params)
+  const rewards = applyLearningResult(storage, params)
   saveAppStorage(storage)
-  return { storage, newlyUnlocked }
+  return { storage, ...rewards }
 }
 
 export function clearMasteredWrongQuestions(profileId: string): AppStorage {

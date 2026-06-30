@@ -7,6 +7,8 @@ import type { RewardState } from './rewards'
 export const STORAGE_VERSION = 2
 export const STORAGE_KEY = 'math-train:v2'
 
+export type WrongReviewStage = 0 | 1 | 2 | 3
+
 // 错题记录
 export interface WrongQuestionRecord {
   id: string
@@ -16,8 +18,12 @@ export interface WrongQuestionRecord {
   usedHint: boolean
   createdAt: string
   lastPracticedAt: string
-  // 加入错题本后累计答对次数（用于「巩固→掌握」）
+  // 旧字段名保留兼容；现在与 reviewStage 同步，不再按同日累计答对。
   correctCountAfterWrong: number
+  // 已通过的间隔复习阶段：0=未通过，1=隔天，2=3天，3=7天并掌握。
+  reviewStage: WrongReviewStage
+  nextReviewAt: string // 本地日期 yyyy-mm-dd；已掌握时为空
+  lastReviewDate: string // 最近一次有效复习的本地日期
   mastered: boolean
 }
 

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BookOpen, CheckCircle2, Clock3, X } from 'lucide-react'
+import { BookOpen, CalendarClock, CheckCircle2, Clock3, X } from 'lucide-react'
 import type { Question } from '@/types/math'
 import type { WrongQuestionRecord } from '@/types/storage'
+import { REVIEW_INTERVAL_DAYS, daysUntilReview, isReviewDue } from '@/lib/spacedReview'
 
 interface WrongBookDrawerProps {
   open: boolean
@@ -37,9 +38,17 @@ export function WrongBookDrawer({
     }
   }, [open, onClose])
 
-  const pending = useMemo(() => records.filter((item) => !item.mastered), [records])
+  const pending = useMemo(
+    () => records
+      .filter((item) => !item.mastered)
+      .sort((a, b) => a.nextReviewAt.localeCompare(b.nextReviewAt)),
+    [records],
+  )
   const mastered = useMemo(() => records.filter((item) => item.mastered), [records])
+  const due = useMemo(() => pending.filter((item) => isReviewDue(item)), [pending])
   const visible = tab === 'pending' ? pending : mastered
+  const waitingDays = pending.map((item) => daysUntilReview(item)).filter((days) => days > 0)
+  const nextWaitingDays = waitingDays.length > 0 ? Math.min(...waitingDays) : 1
 
   return (
     <AnimatePresence>
@@ -70,7 +79,7 @@ export function WrongBookDrawer({
                   长期错题本
                 </h2>
                 <p className="mt-0.5 text-sm font-medium text-slate-400">
-                  独立答对两次后自动移入“已掌握”
+                  隔天、3天、7天各答对一次，才算真正掌握
                 </p>
               </div>
               <button
@@ -87,7 +96,7 @@ export function WrongBookDrawer({
               <div className="grid grid-cols-2 rounded-full bg-slate-100 p-1.5">
                 <TabButton
                   active={tab === 'pending'}
-                  label={`待巩固 ${pending.length}`}
+                  label={`复习计划 ${pending.length}`}
                   onClick={() => setTab('pending')}
                 />
                 <TabButton
@@ -116,15 +125,40 @@ export function WrongBookDrawer({
                           </p>
                         </div>
                         <span className={[
-                          'shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold',
+                          'shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold',
                           item.mastered
                             ? 'bg-green-100 text-green-600'
-                            : 'bg-orange-100 text-coral',
+                            : isReviewDue(item)
+                              ? 'bg-orange-100 text-coral'
+                              : 'bg-sky-100 text-sky-700',
                         ].join(' ')}>
-                          {item.mastered
-                            ? '已掌握'
-                            : `再答对 ${2 - item.correctCountAfterWrong} 次`}
+                          {reviewStatus(item)}
                         </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-3 gap-2" aria-label="间隔复习进度">
+                        {REVIEW_INTERVAL_DAYS.map((days, index) => {
+                          const completed = item.reviewStage > index
+                          const current = !item.mastered && item.reviewStage === index
+                          return (
+                            <div
+                              key={days}
+                              className={[
+                                'rounded-xl px-2 py-2 text-center text-[11px] font-extrabold ring-1',
+                                completed
+                                  ? 'bg-green-50 text-green-600 ring-green-200'
+                                  : current
+                                    ? 'bg-amber-50 text-amber-700 ring-amber-300'
+                                    : 'bg-slate-50 text-slate-400 ring-slate-100',
+                              ].join(' ')}
+                            >
+                              <span className="block text-base" aria-hidden="true">
+                                {completed ? '✓' : current ? '●' : '○'}
+                              </span>
+                              {days === 1 ? '隔天' : `${days} 天后`}
+                            </div>
+                          )
+                        })}
                       </div>
 
                       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-400">
@@ -151,7 +185,7 @@ export function WrongBookDrawer({
                     {tab === 'pending' ? '暂时没有待巩固错题' : '掌握的题目会出现在这里'}
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-400">
-                    {tab === 'pending' ? '继续保持，认真完成每一道题！' : '同一道错题连续答对两次即可掌握'}
+                    {tab === 'pending' ? '继续保持，认真完成每一道题！' : '完成隔天、3天和7天复习后会来到这里'}
                   </p>
                 </div>
               )}
@@ -159,13 +193,20 @@ export function WrongBookDrawer({
 
             {tab === 'pending' && pending.length > 0 && (
               <footer className="border-t border-sky-100 bg-white/80 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 sm:px-6">
-                <button
-                  type="button"
-                  onClick={onPracticePending}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-amber-400 py-4 text-lg font-extrabold text-white shadow-soft"
-                >
-                  <BookOpen size={21} /> 巩固错题 · {Math.min(pending.length, 10)} 题
-                </button>
+                {due.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={onPracticePending}
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-coral to-amber-400 py-4 text-lg font-extrabold text-white shadow-soft"
+                  >
+                    <BookOpen size={21} /> 今日复习 · {Math.min(due.length, 10)} 题
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm font-extrabold text-sky-700 ring-1 ring-sky-100">
+                    <CalendarClock size={20} />
+                    今天已复习完成，{nextWaitingDays === 1 ? '明天再来' : `${nextWaitingDays} 天后再来`}
+                  </div>
+                )}
               </footer>
             )}
           </motion.section>
@@ -173,6 +214,13 @@ export function WrongBookDrawer({
       )}
     </AnimatePresence>
   )
+}
+
+function reviewStatus(item: WrongQuestionRecord): string {
+  if (item.mastered) return '已掌握'
+  if (isReviewDue(item)) return `今天复习 · 第 ${item.reviewStage + 1}/3 关`
+  const days = daysUntilReview(item)
+  return days === 1 ? '明天复习' : `${days} 天后复习`
 }
 
 function TabButton({

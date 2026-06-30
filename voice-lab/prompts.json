@@ -1,0 +1,12 @@
+[
+  { "id": "addition-basic", "category": "基础加法", "text": "三加二等于几？" },
+  { "id": "addition-missing", "category": "缺项加法", "text": "七加几等于十二？" },
+  { "id": "subtraction-basic", "category": "基础减法", "text": "十五减去六，还剩几？" },
+  { "id": "story-question", "category": "故事题", "text": "小兔有五个苹果，又拿来了三个。现在一共有几个？" },
+  { "id": "correct-feedback", "category": "答对反馈", "text": "太棒了，答对啦！" },
+  { "id": "wrong-feedback", "category": "答错鼓励", "text": "没关系，我们再数一次。" },
+  { "id": "train-departure", "category": "机车任务", "text": "蓝风号准备出发，请把乘客安全送到下一站。" },
+  { "id": "train-arrival", "category": "到站奖励", "text": "我们到达星光车站啦，今天的任务完成！" },
+  { "id": "streak-feedback", "category": "连续答对", "text": "已经连续答对五题啦，小火车跑得越来越快！" },
+  { "id": "session-finish", "category": "练习完成", "text": "今天完成了十道题，你认真思考的样子真棒。" }
+]

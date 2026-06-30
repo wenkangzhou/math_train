@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数数小火车 · 中文语音盲听</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; color: #334155; background: linear-gradient(145deg, #e9f6ff, #fff8df); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+      main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 64px; }
+      header { padding: 24px; border: 1px solid rgba(255,255,255,.9); border-radius: 28px; background: rgba(255,255,255,.78); box-shadow: 0 18px 45px rgba(59,130,246,.12); }
+      h1 { margin: 0; font-size: 28px; }
+      header p { margin: 8px 0 0; color: #64748b; }
+      #readiness { display: inline-flex; margin-top: 14px; padding: 8px 12px; border-radius: 999px; color: #9a3412; background: #ffedd5; font-size: 13px; font-weight: 750; }
+      #samples { display: grid; gap: 14px; margin-top: 18px; }
+      article { padding: 18px; border-radius: 24px; background: rgba(255,255,255,.88); box-shadow: 0 12px 35px rgba(15,23,42,.07); }
+      .meta { display: flex; gap: 10px; align-items: baseline; }
+      .tag { padding: 4px 9px; color: #0369a1; background: #e0f2fe; border-radius: 999px; font-size: 12px; font-weight: 800; }
+      .text { margin: 10px 0 14px; font-size: 18px; font-weight: 750; }
+      .voices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .voice { padding: 12px; border-radius: 18px; background: #f8fafc; }
+      .voice strong { display: block; margin-bottom: 8px; color: #0284c7; }
+      audio { width: 100%; height: 38px; }
+      .voice audio { display: none; }
+      .voice.ready audio { display: block; }
+      .not-ready { display: block; min-height: 38px; padding: 9px 12px; border-radius: 999px; color: #94a3b8; background: #e2e8f0; font-size: 13px; font-weight: 750; }
+      .voice.ready .not-ready { display: none; }
+      .vote { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      button { min-height: 40px; padding: 8px 14px; border: 0; border-radius: 999px; color: #475569; background: #f1f5f9; font-weight: 750; cursor: pointer; }
+      button.selected { color: white; background: #0ea5e9; }
+      button:disabled { cursor: not-allowed; opacity: .45; }
+      footer { position: sticky; bottom: 12px; display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 18px; padding: 14px 18px; border-radius: 20px; color: white; background: rgba(14,116,144,.94); box-shadow: 0 12px 30px rgba(14,116,144,.28); }
+      #reveal { color: #075985; background: white; }
+      .speaker { display: none; margin-left: 6px; color: #64748b; font-size: 12px; }
+      body.revealed .speaker { display: inline; }
+      @media (max-width: 680px) { .voices { grid-template-columns: 1fr; } footer { align-items: flex-start; flex-direction: column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>🚂 中文语音样音盲听</h1>
+        <p>每组先听 A/B，再选择更适合4–6岁儿童数学练习的声音。选择仅保存在当前浏览器。</p>
+        <span id="readiness">正在检查样音是否就绪…</span>
+      </header>
+      <section id="samples" aria-live="polite"></section>
+      <footer>
+        <strong id="progress">已评价 0 / 10</strong>
+        <button id="reveal" type="button">揭晓音色</button>
+      </footer>
+    </main>
+    <script>
+      const storageKey = 'math-train:voice-lab:qwen3'
+      const votes = JSON.parse(localStorage.getItem(storageKey) || '{}')
+      const samples = document.querySelector('#samples')
+      const progress = document.querySelector('#progress')
+      const readiness = document.querySelector('#readiness')
+
+      function variantOrder(index) {
+        return index % 2 === 0
+          ? [{ label: 'A', speaker: 'serena' }, { label: 'B', speaker: 'vivian' }]
+          : [{ label: 'A', speaker: 'vivian' }, { label: 'B', speaker: 'serena' }]
+      }
+
+      function updateProgress(total) {
+        progress.textContent = `已评价 ${Object.keys(votes).length} / ${total}`
+      }
+
+      fetch('./prompts.json')
+        .then((response) => response.json())
+        .then((prompts) => {
+          const readinessChecks = []
+          prompts.forEach((prompt, index) => {
+            const article = document.createElement('article')
+            const variants = variantOrder(index)
+            article.innerHTML = `
+              <div class="meta"><span class="tag">${prompt.category}</span><span>样音 ${index + 1}</span></div>
+              <p class="text">${prompt.text}</p>
+              <div class="voices">
+                ${variants.map((variant) => `
+                  <div class="voice">
+                    <strong>声音 ${variant.label}<span class="speaker">Qwen3 · ${variant.speaker}</span></strong>
+                    <audio controls preload="none" src="./audio/qwen3-${variant.speaker}/${prompt.id}.mp3"></audio>
+                    <span class="not-ready">⏳ 样音尚未生成</span>
+                  </div>`).join('')}
+              </div>
+              <div class="vote" aria-label="选择更喜欢的声音">
+                <button type="button" data-choice="A" disabled>更喜欢 A</button>
+                <button type="button" data-choice="B" disabled>更喜欢 B</button>
+                <button type="button" data-choice="none" disabled>都不满意</button>
+              </div>`
+            article.querySelectorAll('[data-choice]').forEach((button) => {
+              if (votes[prompt.id] === button.dataset.choice) button.classList.add('selected')
+              button.addEventListener('click', () => {
+                votes[prompt.id] = button.dataset.choice
+                localStorage.setItem(storageKey, JSON.stringify(votes))
+                article.querySelectorAll('[data-choice]').forEach((item) => item.classList.toggle('selected', item === button))
+                updateProgress(prompts.length)
+              })
+            })
+            const audioChecks = [...article.querySelectorAll('audio')].map((audio) => new Promise((resolve) => {
+              const voice = audio.closest('.voice')
+              const finish = (ready) => {
+                if (ready) voice.classList.add('ready')
+                resolve(ready)
+              }
+              audio.addEventListener('loadedmetadata', () => finish(true), { once: true })
+              audio.addEventListener('error', () => finish(false), { once: true })
+              audio.preload = 'metadata'
+              audio.load()
+            }))
+            readinessChecks.push(Promise.all(audioChecks).then((states) => {
+              const ready = states.every(Boolean)
+              article.querySelectorAll('[data-choice]').forEach((button) => { button.disabled = !ready })
+              return states.filter(Boolean).length
+            }))
+            samples.append(article)
+          })
+          updateProgress(prompts.length)
+          Promise.all(readinessChecks).then((counts) => {
+            const readyCount = counts.reduce((sum, count) => sum + count, 0)
+            const total = prompts.length * 2
+            readiness.textContent = readyCount === total
+              ? `✓ ${total} 条样音已就绪，可以开始盲听`
+              : `样音仍在生成：当前 ${readyCount}/${total} 条可播放`
+          })
+        })
+        .catch(() => { samples.textContent = '样音清单加载失败，请使用本地 HTTP 服务打开此页面。' })
+
+      document.querySelector('#reveal').addEventListener('click', () => {
+        document.body.classList.toggle('revealed')
+      })
+    </script>
+  </body>
+</html>

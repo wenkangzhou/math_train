@@ -73,6 +73,8 @@ describe('v1 → v2 数据迁移', () => {
     expect(wrong).toHaveLength(1)
     expect(wrong[0].mastered).toBe(false)
     expect(wrong[0].correctCountAfterWrong).toBe(0)
+    expect(wrong[0].reviewStage).toBe(0)
+    expect(wrong[0].nextReviewAt).not.toBe('')
   })
 })
 
@@ -154,6 +156,7 @@ describe('练习结算、奖励与长期错题', () => {
         durationMs: 1000,
         wrongAnswers: params.wrongAnswers ?? [],
       }],
+      durationMs: 1500,
       stars: params.firstTry ? 1 : 0,
       correctCount: params.firstTry ? 1 : 0,
       total: 1,
@@ -164,7 +167,7 @@ describe('练习结算、奖励与长期错题', () => {
     }
   }
 
-  it('答错后长期保存，连续两次独立答对后标为已掌握', () => {
+  it('答错后按隔天、3天、7天复习，提前答对不会推进', () => {
     const storage = createFreshStorage()
     const pid = storage.profiles[0].id
 
@@ -172,23 +175,47 @@ describe('练习结算、奖励与长期错题', () => {
       profileId: pid,
       settings: DEFAULT_PROFILE_SETTINGS,
       result: result({ firstTry: false, wrongAnswers: [4] }),
+      now: new Date(2026, 0, 1, 12),
     })
     expect(storage.wrongQuestionsByProfile[pid]).toHaveLength(1)
     expect(storage.wrongQuestionsByProfile[pid][0].wrongAnswers).toEqual([4])
+    expect(storage.wrongQuestionsByProfile[pid][0].nextReviewAt).toBe('2026-01-02')
 
+    // 同一天重复答对不算间隔复习。
     applyLearningResult(storage, {
       profileId: pid,
       settings: DEFAULT_PROFILE_SETTINGS,
       result: result({ firstTry: true, id: 'q2' }),
+      now: new Date(2026, 0, 1, 18),
     })
     expect(storage.wrongQuestionsByProfile[pid][0].mastered).toBe(false)
-    expect(storage.wrongQuestionsByProfile[pid][0].correctCountAfterWrong).toBe(1)
+    expect(storage.wrongQuestionsByProfile[pid][0].reviewStage).toBe(0)
 
     applyLearningResult(storage, {
       profileId: pid,
       settings: DEFAULT_PROFILE_SETTINGS,
       result: result({ firstTry: true, id: 'q3' }),
+      now: new Date(2026, 0, 2, 12),
     })
+    expect(storage.wrongQuestionsByProfile[pid][0].reviewStage).toBe(1)
+    expect(storage.wrongQuestionsByProfile[pid][0].nextReviewAt).toBe('2026-01-05')
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true, id: 'q4' }),
+      now: new Date(2026, 0, 5, 12),
+    })
+    expect(storage.wrongQuestionsByProfile[pid][0].reviewStage).toBe(2)
+    expect(storage.wrongQuestionsByProfile[pid][0].nextReviewAt).toBe('2026-01-12')
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true, id: 'q5' }),
+      now: new Date(2026, 0, 12, 12),
+    })
+    expect(storage.wrongQuestionsByProfile[pid][0].reviewStage).toBe(3)
     expect(storage.wrongQuestionsByProfile[pid][0].mastered).toBe(true)
   })
 
@@ -197,13 +224,52 @@ describe('练习结算、奖励与长期错题', () => {
     const pid = storage.profiles[0].id
     storage.rewardsByProfile[pid].stars = 49
 
-    const unlocked = applyLearningResult(storage, {
+    const rewards = applyLearningResult(storage, {
       profileId: pid,
       settings: DEFAULT_PROFILE_SETTINGS,
       result: result({ firstTry: true }),
     })
 
     expect(storage.rewardsByProfile[pid].stars).toBe(50)
-    expect(unlocked.map((item) => item.id)).toContain('engine-red-express')
+    expect(rewards.newlyUnlocked.map((item) => item.id)).toContain('engine-red-express')
+  })
+
+  it('完成练习会获得路线邮票并累计到站次数', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+
+    const first = applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true }),
+    })
+    const second = applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: result({ firstTry: true, id: 'q2' }),
+    })
+
+    expect(first.routeReward.destination).toBe('彩虹中央站')
+    expect(first.routeReward.isNewStamp).toBe(true)
+    expect(first.routeReward.tripCount).toBe(1)
+    expect(second.routeReward.isNewStamp).toBe(false)
+    expect(second.routeReward.tripCount).toBe(2)
+    expect(storage.rewardsByProfile[pid].stickers).toContain(first.routeReward.stampId)
+  })
+
+  it('练习历史使用整轮连续答题时长', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+    const practiceResult = result({ firstTry: true })
+    practiceResult.durationMs = 90_000
+
+    applyLearningResult(storage, {
+      profileId: pid,
+      settings: DEFAULT_PROFILE_SETTINGS,
+      result: practiceResult,
+    })
+
+    const item = storage.historyByProfile[pid][0]
+    expect(Date.parse(item.completedAt) - Date.parse(item.startedAt)).toBe(90_000)
   })
 })

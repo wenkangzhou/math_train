@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   BookOpen,
+  ChevronDown,
   ChevronRight,
   Clock3,
   Rocket,
@@ -22,7 +23,7 @@ import type {
 } from '@/types/math'
 import type { RewardState } from '@/types/rewards'
 import type { SpeechRate } from '@/types/profile'
-import type { WrongQuestionRecord } from '@/types/storage'
+import type { PracticeHistoryItem, WrongQuestionRecord } from '@/types/storage'
 import {
   ADDITION_PATTERNS,
   SUBTRACTION_PATTERNS,
@@ -34,9 +35,14 @@ import { QuestionCountSelector } from './QuestionCountSelector'
 import { HintSettings } from './HintSettings'
 import { AdvancedSettingsDrawer } from './AdvancedSettingsDrawer'
 import { SectionCard } from '@/components/common/SectionCard'
-import { TrainMascot } from '@/components/common/TrainMascot'
 import { RewardDrawer } from '@/components/rewards/RewardDrawer'
+import { TrainEngineArt } from '@/components/rewards/TrainEngineArt'
 import { WrongBookDrawer } from '@/components/wrongBook/WrongBookDrawer'
+import { PracticeHistoryDrawer } from '@/components/history/PracticeHistoryDrawer'
+import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
+import { getTrainRoute } from '@/lib/trainRoutes'
+import { isReviewDue } from '@/lib/spacedReview'
+import { setSoundEnabled as setGlobalSoundEnabled } from '@/lib/sound'
 
 export type StartSettings = PracticeSettings & {
   questionFormats: QuestionFormat[]
@@ -51,6 +57,7 @@ interface SetupScreenProps {
   initialSettings: PracticeSettings &
     Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate'>>
   history: StoredHistory
+  practiceHistory: PracticeHistoryItem[]
   reward: RewardState
   wrongRecords: WrongQuestionRecord[]
   onStart: (settings: StartSettings) => void
@@ -71,6 +78,7 @@ function isAddition(range: RangeType) {
 export function SetupScreen({
   initialSettings,
   history,
+  practiceHistory,
   reward,
   wrongRecords,
   onStart,
@@ -111,6 +119,12 @@ export function SetupScreen({
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [rewardOpen, setRewardOpen] = useState(false)
   const [wrongBookOpen, setWrongBookOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [helperOpen, setHelperOpen] = useState(false)
+
+  useEffect(() => {
+    setGlobalSoundEnabled(soundEnabled)
+  }, [soundEnabled])
 
   const toggleFormat = (f: QuestionFormat) => {
     setFormats((prev) => {
@@ -226,7 +240,17 @@ export function SetupScreen({
     .reduce((sum, entry) => sum + entry.total, 0)
   const dailyTarget = 10
   const dailyProgress = Math.min(100, (todayQuestions / dailyTarget) * 100)
-  const pendingWrongCount = wrongRecords.filter((item) => !item.mastered).length
+  const pendingWrongCount = wrongRecords.filter((item) => isReviewDue(item)).length
+  const enabledHelperCount = [
+    autoShowVisualHint,
+    showHintAfterWrong,
+    soundEnabled,
+    autoReadQuestion,
+    autoReadFeedback,
+  ].filter(Boolean).length
+  const selectedTrain = getCarriage(reward.selectedHead) ?? CARRIAGE_CATALOG[0]
+  const currentRoute = getTrainRoute(selectedTrain.id)
+  const routeTripCount = reward.routeTrips?.[currentRoute.id] ?? 0
 
   const rangeSummary = ranges.length === 0
     ? '还没选择范围'
@@ -253,18 +277,18 @@ export function SetupScreen({
           <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-white/10" />
 
           <div className="relative flex items-center gap-4 ipad-land:block ipad-land:text-center">
-            <div className="shrink-0 rounded-[26px] bg-white/20 p-2 ring-1 ring-white/25 backdrop-blur ipad-land:mx-auto ipad-land:w-fit">
-              <div className="ipad-land:scale-110">
-                <TrainMascot mood="happy" size={90} />
+            <div className="flex h-[88px] w-[122px] shrink-0 items-end justify-center rounded-[26px] bg-white/20 p-2 ring-1 ring-white/25 backdrop-blur ipad-land:mx-auto">
+              <div className="origin-bottom scale-[0.9] ipad-land:scale-100">
+                <TrainEngineArt item={selectedTrain} compact />
               </div>
             </div>
             <div className="min-w-0 ipad-land:mt-3">
-              <p className="text-sm font-bold text-white/75">今日小任务</p>
-              <h2 className="mt-0.5 text-2xl font-extrabold ipad-land:text-3xl">
-                准备好发车了吗？
+              <p className="text-sm font-bold text-white/75">{selectedTrain.name} · 今日路线</p>
+              <h2 className="mt-0.5 text-2xl font-extrabold ipad-land:text-[28px]">
+                开往{currentRoute.destination}
               </h2>
               <p className="mt-1 text-sm font-medium text-white/80">
-                每天练一点，算得越来越快
+                {currentRoute.cargoEmoji} {currentRoute.missionTitle}
               </p>
             </div>
           </div>
@@ -285,8 +309,10 @@ export function SetupScreen({
             </div>
             <p className="mt-2 text-xs text-white/70">
               {todayQuestions >= dailyTarget
-                ? '今日任务完成，太棒啦！'
-                : `再做 ${dailyTarget - todayQuestions} 题就完成今日任务`}
+                ? `${currentRoute.stampEmoji} 今日任务完成，继续出发还能累计到站次数`
+                : routeTripCount > 0
+                  ? `这条路线已到站 ${routeTripCount} 次 · 再做 ${dailyTarget - todayQuestions} 题完成今日任务`
+                  : `完成一轮练习，领取第一枚${currentRoute.destination}邮票`}
             </p>
           </div>
 
@@ -330,7 +356,12 @@ export function SetupScreen({
 
           <div className="relative mt-3 grid grid-cols-3 gap-2">
             <Metric icon={<Star size={17} fill="currentColor" />} value={reward.stars} label="星星" />
-            <Metric icon={<Trophy size={17} />} value={totalQuestions} label="已练题" />
+            <MetricButton
+              icon={<Trophy size={17} />}
+              value={totalQuestions}
+              label="答题记录"
+              onClick={() => setHistoryOpen(true)}
+            />
             <Metric icon={<Clock3 size={17} />} value={latestAccuracy === null ? '—' : `${latestAccuracy}%`} label="上次" />
           </div>
 
@@ -363,7 +394,7 @@ export function SetupScreen({
               <span className="min-w-0">
                 <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">长期错题本</span>
                 <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
-                  待巩固 {pendingWrongCount} 题
+                  今日复习 {pendingWrongCount} 题
                 </span>
               </span>
             </button>
@@ -416,20 +447,61 @@ export function SetupScreen({
             </SectionCard>
           </div>
 
-          <SectionCard title="学习小帮手" hint="孩子可以在做题时随时打开">
-            <HintSettings
-              autoShowVisualHint={autoShowVisualHint}
-              showHintAfterWrongAnswer={showHintAfterWrong}
-              soundEnabled={soundEnabled}
-              autoReadQuestion={autoReadQuestion}
-              autoReadFeedback={autoReadFeedback}
-              onChangeAutoShow={setAutoShow}
-              onChangeAfterWrong={setAfterWrong}
-              onChangeSound={setSoundEnabled}
-              onChangeAutoReadQuestion={setAutoReadQuestion}
-              onChangeAutoReadFeedback={setAutoReadFeedback}
-            />
-          </SectionCard>
+          <section className="overflow-hidden rounded-[26px] bg-white/85 shadow-soft ring-1 ring-white/80 backdrop-blur">
+            <button
+              type="button"
+              aria-expanded={helperOpen}
+              aria-controls="helper-settings-panel"
+              onClick={() => setHelperOpen((open) => !open)}
+              className="flex min-h-[76px] w-full items-center justify-between gap-4 px-4 py-3 text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/40 sm:px-5"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-soft/60 text-sky-deep">
+                  <Sparkles size={20} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-lg font-extrabold text-slate-700">学习小帮手</span>
+                  <span className="mt-0.5 block text-xs font-medium text-slate-400">
+                    已启用 {enabledHelperCount} 项 · 设置一次后会自动保存
+                  </span>
+                </span>
+              </span>
+              <ChevronDown
+                size={22}
+                className={[
+                  'shrink-0 text-slate-400 transition-transform',
+                  helperOpen ? 'rotate-180' : '',
+                ].join(' ')}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {helperOpen && (
+                <motion.div
+                  id="helper-settings-panel"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="border-t border-sky-100 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+                    <HintSettings
+                      autoShowVisualHint={autoShowVisualHint}
+                      showHintAfterWrongAnswer={showHintAfterWrong}
+                      soundEnabled={soundEnabled}
+                      autoReadQuestion={autoReadQuestion}
+                      autoReadFeedback={autoReadFeedback}
+                      onChangeAutoShow={setAutoShow}
+                      onChangeAfterWrong={setAfterWrong}
+                      onChangeSound={setSoundEnabled}
+                      onChangeAutoReadQuestion={setAutoReadQuestion}
+                      onChangeAutoReadFeedback={setAutoReadFeedback}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
           <button
             type="button"
@@ -463,6 +535,7 @@ export function SetupScreen({
       <RewardDrawer
         open={rewardOpen}
         reward={reward}
+        soundEnabled={soundEnabled}
         onClose={() => setRewardOpen(false)}
         onSelectHead={onSelectHead}
       />
@@ -472,6 +545,12 @@ export function SetupScreen({
         records={wrongRecords}
         onClose={() => setWrongBookOpen(false)}
         onPracticePending={onPracticeWrong}
+      />
+
+      <PracticeHistoryDrawer
+        open={historyOpen}
+        records={practiceHistory}
+        onClose={() => setHistoryOpen(false)}
       />
 
       {/* 手机 / 竖屏使用底部主操作，横屏则放在任务总览中。 */}
@@ -514,5 +593,33 @@ function Metric({
       </span>
       <span className="mt-0.5 block text-[11px] font-semibold text-white/70">{label}</span>
     </div>
+  )
+}
+
+function MetricButton({
+  icon,
+  value,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode
+  value: number | string
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${label}，共 ${value} 题`}
+      className="rounded-2xl bg-white/20 px-2 py-3 text-center ring-1 ring-white/25 transition hover:bg-white/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+    >
+      <span className="flex items-center justify-center gap-1 text-lg font-extrabold">
+        {icon} {value}
+      </span>
+      <span className="mt-0.5 block whitespace-nowrap text-[11px] font-semibold text-white/80">
+        {label}
+      </span>
+    </button>
   )
 }

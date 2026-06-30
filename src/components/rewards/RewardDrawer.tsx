@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { CheckCircle2, Lock, Play, Star, X } from 'lucide-react'
-import type { Carriage, RewardState, TrainLivery } from '@/types/rewards'
+import { BellRing, CheckCircle2, Lock, MapPin, Play, Star, X } from 'lucide-react'
+import type { Carriage, RewardState, TrainRoute } from '@/types/rewards'
 import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
+import { TRAIN_ROUTES, getTrainRoute, routeStampId } from '@/lib/trainRoutes'
+import { playTrainBell } from '@/lib/sound'
+import { TrainEngineArt } from './TrainEngineArt'
 
 interface RewardDrawerProps {
   open: boolean
   reward: RewardState
+  soundEnabled: boolean
   onClose: () => void
   onSelectHead: (id: string) => void
 }
@@ -14,6 +18,7 @@ interface RewardDrawerProps {
 export function RewardDrawer({
   open,
   reward,
+  soundEnabled,
   onClose,
   onSelectHead,
 }: RewardDrawerProps) {
@@ -45,18 +50,44 @@ export function RewardDrawer({
   }, [detailOpen, open, onClose, reward.selectedHead])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setRunning(false)
+      setDetailOpen(false)
+      return
+    }
     setFocusedId(reward.selectedHead)
     setRunning(false)
     setDetailOpen(false)
   }, [open, reward.selectedHead])
+
+  useEffect(() => {
+    if (!running) return
+    const returnBell = window.setTimeout(
+      () => {
+        if (soundEnabled) playTrainBell()
+      },
+      reduceMotion ? 500 : 10300,
+    )
+    const stopTimer = window.setTimeout(
+      () => setRunning(false),
+      reduceMotion ? 850 : 11200,
+    )
+    return () => {
+      window.clearTimeout(returnBell)
+      window.clearTimeout(stopTimer)
+    }
+  }, [reduceMotion, running, soundEnabled])
 
   const nextReward = CARRIAGE_CATALOG.find(
     (item) => item.unlockAtStars > reward.stars,
   )
   const selectedHead = getCarriage(reward.selectedHead) ?? CARRIAGE_CATALOG[0]
   const focusedTrain = getCarriage(focusedId) ?? selectedHead
+  const focusedRoute = getTrainRoute(focusedTrain.id)
   const focusedUnlocked = reward.unlockedCarriages.includes(focusedTrain.id)
+  const earnedRouteCount = TRAIN_ROUTES.filter((route) =>
+    reward.stickers.includes(routeStampId(route.id)),
+  ).length
   const currentMilestone = [...CARRIAGE_CATALOG]
     .reverse()
     .find((item) => item.unlockAtStars <= reward.stars)?.unlockAtStars ?? 0
@@ -70,6 +101,7 @@ export function RewardDrawer({
 
   const runFocusedTrain = () => {
     if (running) return
+    if (soundEnabled) playTrainBell()
     setRunCycle((cycle) => cycle + 1)
     setRunning(true)
   }
@@ -148,37 +180,15 @@ export function RewardDrawer({
                     className="absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-full bg-coral px-3 py-2 text-xs font-extrabold text-white shadow-md transition disabled:bg-slate-400"
                   >
                     <Play size={14} fill="currentColor" />
-                    {running ? '正在跑…' : '跑一圈'}
+                    {running ? '环线运行中…' : '环线出发'}
                   </button>
-                  <div className="absolute inset-x-0 bottom-0 h-9 bg-gradient-to-b from-green-200 to-green-300" />
-                  <div className="absolute inset-x-0 bottom-5 h-1.5 bg-slate-500/60" />
-                  <div className="absolute inset-x-0 bottom-2 h-1.5 bg-slate-500/60" />
-                  <div className="absolute inset-x-0 bottom-1 flex justify-around">
-                    {Array.from({ length: 14 }, (_, index) => (
-                      <span key={index} className="h-6 w-1 -rotate-12 rounded-full bg-amber-800/35" />
-                    ))}
-                  </div>
-
-                  <motion.div
+                  <TrainLoopScene
                     key={`${focusedTrain.id}-${runCycle}`}
-                    data-testid="train-stage-runner"
-                    className="absolute bottom-6 left-6 z-10"
-                    initial={false}
-                    animate={
-                      running
-                        ? { x: reduceMotion ? [0, 16, 0] : [0, 160, 0] }
-                        : { x: 0 }
-                    }
-                    transition={{
-                      duration: reduceMotion ? 0.5 : 2.8,
-                      ease: 'easeInOut',
-                    }}
-                    onAnimationComplete={() => {
-                      if (running) setRunning(false)
-                    }}
-                  >
-                    <EngineArt item={focusedTrain} running={running && !reduceMotion} />
-                  </motion.div>
+                    item={focusedTrain}
+                    route={focusedRoute}
+                    running={running}
+                    reduceMotion={Boolean(reduceMotion)}
+                  />
                 </div>
 
                 {nextReward ? (
@@ -199,6 +209,45 @@ export function RewardDrawer({
                     全部机车都收集齐啦！
                   </p>
                 )}
+              </div>
+
+              <div className="mb-3 mt-6 flex items-end justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-700">路线邮册</h3>
+                  <p className="text-xs font-bold text-slate-400">每辆机车都有一条专属任务路线</p>
+                </div>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-extrabold text-amber-700">
+                  {earnedRouteCount}/{TRAIN_ROUTES.length} 枚
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {TRAIN_ROUTES.map((route) => {
+                  const earned = reward.stickers.includes(routeStampId(route.id))
+                  const trips = reward.routeTrips?.[route.id] ?? 0
+                  return (
+                    <div
+                      key={route.id}
+                      title={earned ? `${route.destination}，已到站 ${trips} 次` : `完成${route.destination}路线后获得`}
+                      aria-label={earned ? `${route.destination}邮票，已到站${trips}次` : `${route.destination}邮票尚未获得`}
+                      className={[
+                        'flex min-h-[84px] flex-col items-center justify-center rounded-2xl px-1.5 py-2 text-center ring-1',
+                        earned
+                          ? 'bg-gradient-to-b from-amber-50 to-white text-slate-700 shadow-sm ring-amber-200'
+                          : 'bg-slate-100 text-slate-400 ring-slate-200',
+                      ].join(' ')}
+                    >
+                      <span className={earned ? 'text-3xl' : 'grayscale text-3xl opacity-35'} aria-hidden="true">
+                        {route.stampEmoji}
+                      </span>
+                      <span className="mt-1 max-w-full truncate text-[10px] font-extrabold">
+                        {route.destination}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        {earned ? `到站 ${trips} 次` : '等待出发'}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
 
               <div className="mb-3 mt-6 flex items-end justify-between gap-3">
@@ -228,7 +277,7 @@ export function RewardDrawer({
                       ].join(' ')}
                     >
                       <div className={unlocked ? '' : 'opacity-[0.55] saturate-[0.75]'}>
-                        <EngineArt item={item} compact />
+                        <TrainEngineArt item={item} compact />
                       </div>
                       <span className="mt-1 text-sm font-extrabold text-slate-700">
                         {item.name}
@@ -293,27 +342,14 @@ export function RewardDrawer({
                   </header>
 
                   <div className="relative mt-4 h-40 overflow-hidden rounded-[24px] bg-gradient-to-b from-sky-100 via-white to-green-100 ring-1 ring-sky-100">
-                    <div className="absolute left-5 top-4 h-6 w-14 rounded-full bg-white/80" />
-                    <div className="absolute inset-x-0 bottom-0 h-8 bg-green-200" />
-                    <div className="absolute inset-x-0 bottom-4 h-1.5 bg-slate-500/60" />
-                    <div className="absolute inset-x-0 bottom-1 h-1.5 bg-slate-500/60" />
-                    <motion.div
+                    <TrainLoopScene
                       key={`detail-${focusedTrain.id}-${runCycle}`}
-                      data-testid="train-detail-runner"
-                      className="absolute bottom-5 left-6"
-                      initial={false}
-                      animate={
-                        running
-                          ? { x: reduceMotion ? [0, 12, 0] : [0, 150, 0] }
-                          : { x: 0 }
-                      }
-                      transition={{ duration: reduceMotion ? 0.5 : 2.8, ease: 'easeInOut' }}
-                      onAnimationComplete={() => {
-                        if (running) setRunning(false)
-                      }}
-                    >
-                      <EngineArt item={focusedTrain} running={running && !reduceMotion} />
-                    </motion.div>
+                      item={focusedTrain}
+                      route={focusedRoute}
+                      running={running}
+                      reduceMotion={Boolean(reduceMotion)}
+                      compact
+                    />
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
@@ -333,7 +369,7 @@ export function RewardDrawer({
                       className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-coral px-4 text-sm font-extrabold text-white shadow-soft disabled:bg-slate-300"
                     >
                       <Play size={18} fill="currentColor" />
-                      {running ? '奔跑中…' : '试跑一次'}
+                      {running ? '环线运行中…' : '环线试跑'}
                     </button>
                     {focusedUnlocked ? (
                       focusedTrain.id === selectedHead.id ? (
@@ -374,147 +410,158 @@ function TrainFact({ label, value }: { label: string; value: string }) {
   )
 }
 
-interface EnginePalette {
-  body: string
-  dark: string
-  accent: string
-  light: string
-}
+// Railroad ties evenly spaced across one tile; they scroll with the scenery
+// so the wheels look like they're actually covering ground.
+const SLEEPER_OFFSETS = [3, 14, 25, 36, 47, 58, 69, 80, 91] as const
 
-const ENGINE_PALETTES: Record<TrainLivery, EnginePalette> = {
-  blue: { body: 'bg-sky-500', dark: 'bg-sky-700', accent: 'bg-red-500', light: 'bg-sky-200' },
-  red: { body: 'bg-red-500', dark: 'bg-red-700', accent: 'bg-amber-300', light: 'bg-red-200' },
-  green: { body: 'bg-emerald-500', dark: 'bg-emerald-700', accent: 'bg-amber-400', light: 'bg-emerald-200' },
-  yellow: { body: 'bg-amber-400', dark: 'bg-amber-600', accent: 'bg-red-500', light: 'bg-amber-100' },
-  orange: { body: 'bg-orange-500', dark: 'bg-orange-700', accent: 'bg-sky-400', light: 'bg-orange-200' },
-  navy: { body: 'bg-blue-700', dark: 'bg-blue-950', accent: 'bg-cyan-300', light: 'bg-blue-200' },
-  purple: { body: 'bg-violet-500', dark: 'bg-violet-800', accent: 'bg-fuchsia-300', light: 'bg-violet-200' },
-  cyan: { body: 'bg-cyan-400', dark: 'bg-cyan-700', accent: 'bg-white', light: 'bg-cyan-100' },
-  teal: { body: 'bg-teal-500', dark: 'bg-teal-800', accent: 'bg-amber-300', light: 'bg-teal-100' },
-  pink: { body: 'bg-pink-500', dark: 'bg-pink-700', accent: 'bg-yellow-300', light: 'bg-pink-100' },
-  slate: { body: 'bg-slate-500', dark: 'bg-slate-800', accent: 'bg-orange-400', light: 'bg-slate-200' },
-  lime: { body: 'bg-lime-500', dark: 'bg-lime-700', accent: 'bg-cyan-300', light: 'bg-lime-100' },
-  rose: { body: 'bg-rose-400', dark: 'bg-rose-700', accent: 'bg-amber-300', light: 'bg-rose-100' },
-  indigo: { body: 'bg-indigo-500', dark: 'bg-indigo-900', accent: 'bg-fuchsia-300', light: 'bg-indigo-200' },
-}
-
-const SMOKE_PUFFS = ['smoke-a', 'smoke-b', 'smoke-c'] as const
-const WHEEL_IDS = ['front', 'middle', 'back'] as const
-
-function EngineArt({
+function TrainLoopScene({
   item,
+  route,
+  running,
+  reduceMotion,
   compact = false,
-  running = false,
 }: {
   item: Carriage
+  route: TrainRoute
+  running: boolean
+  reduceMotion: boolean
   compact?: boolean
-  running?: boolean
 }) {
-  const palette = ENGINE_PALETTES[item.livery]
+  // The scenery lives on a strip of three identical tiles (w-[300%]). One run
+  // scrolls it left by two full tiles (-66.6667% of the strip) over ~11s, so
+  // the train covers real distance — two tiles of pasture glide past — and the
+  // third, identical station lands back under it. Because every tile is the
+  // same, ending on any tile boundary means "起点就是终点": the loop is
+  // seamless. The train itself never moves or flips; the world moves past it,
+  // which is what makes it read naturally.
+  const scrollAnimation = reduceMotion
+    ? { x: ['0%', '-4%', '0%'] }
+    : { x: ['0%', '-66.6667%'] }
+  // Resetting to rest uses duration 0: because the tiles are identical, the
+  // jump from a tile boundary back to 0% is visually indistinguishable, so
+  // there is no ugly rewind when the run ends.
+  const scrollTransition = running
+    ? reduceMotion
+      ? { duration: 0.75, ease: 'easeInOut' as const }
+      : { duration: 11, ease: 'easeInOut' as const }
+    : { duration: 0 }
+
   return (
-    <div
-      className={compact ? 'relative h-[72px] w-[102px]' : 'relative h-[92px] w-[132px]'}
-      aria-hidden="true"
-    >
-      {running && !compact && (
-        <span data-testid="train-smoke" className="absolute bottom-[78px] left-[88px] z-20">
-          {SMOKE_PUFFS.map((puff, index) => (
-            <motion.i
-              key={puff}
-              className="absolute h-4 w-4 rounded-full bg-white/80 shadow-sm"
-              initial={{ opacity: 0, x: 0, y: 0, scale: 0.6 }}
-              animate={{ opacity: [0, 0.9, 0], x: [0, 8, 18], y: [0, -12, -26], scale: [0.6, 1, 1.5] }}
-              transition={{ duration: 1.25, repeat: Infinity, delay: index * 0.36 }}
-            />
-          ))}
-        </span>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Sky + ground stay fixed; only the scenery strip scrolls */}
+      <div className="absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-b from-transparent via-emerald-50/60 to-green-200" />
+      <div className="absolute right-6 top-8 h-9 w-9 rounded-full bg-amber-200/80 shadow-[0_0_22px_rgba(253,230,138,0.85)]" />
+      <div className="absolute left-8 top-5 h-6 w-14 rounded-full bg-white/70 blur-[1px]" />
+      <div className="absolute right-16 top-12 h-5 w-11 rounded-full bg-white/60 blur-[1px]" />
+
+      {/* Continuous rails sit above the scrolling sleepers */}
+      <div className="absolute inset-x-0 bottom-[30px] z-[6] h-[3px] bg-slate-500/70" />
+      <div className="absolute inset-x-0 bottom-[24px] z-[6] h-[3px] bg-slate-400/60" />
+
+      {/* The scrolling world: two identical tiles laid side by side */}
+      <motion.div
+        className="absolute inset-y-0 left-0 flex w-[300%]"
+        initial={false}
+        animate={scrollAnimation}
+        transition={scrollTransition}
+      >
+        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
+      </motion.div>
+
+      {/* Station bell, parked beside the train — rings on departure / arrival */}
+      <motion.span
+        className="absolute bottom-[64px] left-[22%] z-20 flex h-7 w-7 items-center justify-center rounded-full bg-amber-300 text-amber-800 shadow-md"
+        animate={running && !reduceMotion ? { rotate: [0, 16, -16, 12, -8, 0] } : { rotate: 0 }}
+        transition={{ duration: 0.7, repeat: running ? Infinity : 0, repeatDelay: 0.6 }}
+      >
+        <BellRing size={16} />
+      </motion.span>
+
+      {/* The train holds its position; the bob + wheels sell the motion */}
+      <motion.div
+        data-testid={compact ? 'train-detail-runner' : 'train-stage-runner'}
+        className="absolute bottom-[20px] left-[8%] z-20 h-[72px] w-[102px] origin-bottom"
+        initial={false}
+        animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+        transition={{ duration: 0.5, repeat: running && !reduceMotion ? Infinity : 0, ease: 'easeInOut' }}
+      >
+        <TrainEngineArt item={item} compact running={running && !reduceMotion} />
+      </motion.div>
+
+      {running && !reduceMotion && (
+        <motion.div
+          className="absolute bottom-3 left-3 z-30 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-extrabold text-sky-700 shadow-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 1, 0, 1] }}
+          transition={{ duration: 11, times: [0, 0.04, 0.82, 0.92, 1] }}
+        >
+          出站旅行 · 最后回到原站
+        </motion.div>
       )}
-      <span className={[
-        'absolute rounded-t-md shadow-sm', palette.dark,
-        compact ? 'bottom-[48px] left-[65px] h-6 w-3' : 'bottom-[60px] left-[84px] h-8 w-4',
-      ].join(' ')} />
-      <span className={[
-        'absolute rounded-full ring-2 ring-white/50', palette.accent,
-        compact ? 'bottom-[45px] left-[47px] h-3 w-4' : 'bottom-[56px] left-[61px] h-4 w-5',
-      ].join(' ')} />
-
-      <div className={[
-        'absolute rounded-t-[16px] shadow-md ring-2 ring-white/35', palette.body,
-        compact ? 'bottom-[18px] left-1 h-10 w-8' : 'bottom-[22px] left-1 h-14 w-11',
-      ].join(' ')}>
-        <span className={[
-          'absolute rounded-md border-2 border-white/80 bg-sky-100',
-          compact ? 'left-2 top-2 h-4 w-4' : 'left-2.5 top-2.5 h-5 w-5',
-        ].join(' ')} />
-      </div>
-
-      <div className={[
-        'absolute rounded-[18px] shadow-md ring-2 ring-white/35', palette.body,
-        compact ? 'bottom-[18px] left-[29px] h-8 w-[61px]' : 'bottom-[22px] left-[40px] h-11 w-[78px]',
-      ].join(' ')}>
-        <span className={[
-          'absolute left-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white/90 font-bold shadow-sm',
-          compact ? 'h-5 w-5 text-[10px]' : 'h-7 w-7 text-sm',
-        ].join(' ')}>
-          {item.emoji}
-        </span>
-        <span className={[
-          'absolute bottom-1 right-2 rounded-full', palette.accent,
-          compact ? 'h-1.5 w-6' : 'h-2 w-8',
-        ].join(' ')} />
-      </div>
-
-      <div className={[
-        'absolute flex items-center justify-center rounded-full bg-[#f7e7d0] shadow-md ring-2 ring-slate-300',
-        compact ? 'bottom-[22px] right-0 h-7 w-7' : 'bottom-[28px] right-0 h-9 w-9',
-      ].join(' ')}>
-        <span className={compact ? 'mb-1 flex gap-1' : 'mb-1 flex gap-1.5'}>
-          <i className="h-1.5 w-1.5 rounded-full bg-slate-700" />
-          <i className="h-1.5 w-1.5 rounded-full bg-slate-700" />
-        </span>
-        <span className="absolute bottom-1.5 h-1 w-3 rounded-full border-b-2 border-slate-500" />
-      </div>
-
-      <span className={[
-        'absolute left-0 right-1 rounded-full shadow-sm', palette.dark,
-        compact ? 'bottom-[14px] h-2' : 'bottom-[17px] h-2.5',
-      ].join(' ')} />
-      <span className={[
-        'absolute right-0 border-y-transparent border-l-transparent',
-        compact
-          ? 'bottom-[14px] border-b-[8px] border-r-[13px] border-t-[8px] border-r-slate-600'
-          : 'bottom-[17px] border-b-[10px] border-r-[16px] border-t-[10px] border-r-slate-600',
-      ].join(' ')} />
-      <EngineWheels compact={compact} palette={palette} running={running} />
     </div>
   )
 }
 
-function EngineWheels({
-  compact,
-  palette,
+// One tile of scenery, sized to exactly fill the visible area. Two of these
+// laid side by side make the seamless loop. Positions use percentages so the
+// layout is identical in both copies.
+function SceneryTile({
+  route,
   running,
+  reduceMotion,
 }: {
-  compact: boolean
-  palette: EnginePalette
+  route: TrainRoute
   running: boolean
+  reduceMotion: boolean
 }) {
   return (
-    <div className={compact ? 'absolute bottom-0 left-2 right-3 flex justify-between' : 'absolute bottom-0 left-3 right-4 flex justify-between'}>
-      {WHEEL_IDS.map((wheel) => (
-        <motion.span
-          key={wheel}
-          animate={running ? { rotate: 360 } : { rotate: 0 }}
-          transition={running ? { duration: 0.42, repeat: Infinity, ease: 'linear' } : undefined}
-          className={[
-            'flex items-center justify-center rounded-full border-slate-700 shadow-sm ring-1 ring-white/70',
-            palette.light,
-            compact ? 'h-5 w-5 border-[4px]' : 'h-7 w-7 border-[5px]',
-          ].join(' ')}
-        >
-          <i className="block h-1.5 w-1.5 rounded-full bg-slate-700/70" />
-        </motion.span>
+    <div className="relative h-full w-1/3 shrink-0">
+      {/* Railroad ties */}
+      {SLEEPER_OFFSETS.map((offset) => (
+        <span
+          key={offset}
+          className="absolute bottom-[20px] z-[4] h-[12px] w-[3px] rounded-sm bg-amber-800/55"
+          style={{ left: `${offset}%` }}
+        />
       ))}
+
+      {/* Station platform + destination sign (origin = destination) */}
+      <div className="absolute bottom-[36px] left-[5%] z-[15] flex flex-col items-center">
+        <span className="flex max-w-[96px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[9px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
+          <MapPin size={10} className="shrink-0" /> {route.destination}
+        </span>
+        <span className="h-8 w-1.5 bg-slate-500" />
+      </div>
+
+      {/* Pasture: fence with grazing animals */}
+      <div className="absolute bottom-[36px] left-[42%] z-10 flex items-end gap-1 rounded-2xl bg-white/45 px-2 py-1 shadow-sm">
+        <motion.span
+          className="text-2xl"
+          animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+          transition={{ duration: 0.8, repeat: running ? Infinity : 0 }}
+        >
+          🐄
+        </motion.span>
+        <motion.span
+          className="text-xl"
+          animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+          transition={{ duration: 0.7, repeat: running ? Infinity : 0, delay: 0.18 }}
+        >
+          🐑
+        </motion.span>
+        <span className="absolute -bottom-1 left-0 right-0 flex justify-around">
+          <i className="h-2 w-0.5 bg-amber-700/70" />
+          <i className="h-2 w-0.5 bg-amber-700/70" />
+          <i className="h-2 w-0.5 bg-amber-700/70" />
+          <i className="h-2 w-0.5 bg-amber-700/70" />
+        </span>
+      </div>
+
+      {/* Roadside greenery */}
+      <span className="absolute bottom-[40px] left-[68%] z-10 text-3xl">🌳</span>
+      <span className="absolute bottom-[34px] left-[86%] z-10 text-xl">🌼</span>
     </div>
   )
 }

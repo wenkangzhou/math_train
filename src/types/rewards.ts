@@ -40,6 +40,22 @@ export interface StreakState {
   lastActiveDate: string // yyyy-mm-dd
 }
 
+export interface TrainRoute {
+  id: string
+  trainId: string
+  destination: string
+  missionTitle: string
+  missionDetail: string
+  cargoEmoji: string
+  stampEmoji: string
+}
+
+export interface RouteReward extends TrainRoute {
+  stampId: string
+  tripCount: number
+  isNewStamp: boolean
+}
+
 // 单个档案的奖励状态
 export interface RewardState {
   coins: number
@@ -48,5 +64,6 @@ export interface RewardState {
   unlockedCarriages: string[] // 已解锁机车 id（字段名保留以兼容旧存储）
   selectedHead: string // 当前车头 id
   trainOrder: string[] // 已解锁机车陈列顺序（字段名保留以兼容旧存储）
+  routeTrips: Record<string, number> // 每条专属路线累计到站次数
   streak: StreakState
 }

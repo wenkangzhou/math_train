@@ -1,17 +1,19 @@
 import { motion } from 'framer-motion'
 import type { PracticeResult } from '@/types/math'
-import type { Carriage } from '@/types/rewards'
+import type { Carriage, RouteReward } from '@/types/rewards'
 import { resultLevel } from '@/lib/difficulty'
 import { Star } from 'lucide-react'
 import { TrainMascot } from '@/components/common/TrainMascot'
 import { Celebration } from './Celebration'
 import { ResultSummary } from './ResultSummary'
 import { ResultActions } from './ResultActions'
+import { ArrivalRewardCard } from './ArrivalRewardCard'
 
 interface ResultScreenProps {
   result: PracticeResult
   totalStars: number
   newlyUnlocked: Carriage[]
+  routeReward: RouteReward | null
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
@@ -21,6 +23,7 @@ export function ResultScreen({
   result,
   totalStars,
   newlyUnlocked,
+  routeReward,
   onReplay,
   onPracticeWrong,
   onReconfigure,
@@ -67,6 +70,8 @@ export function ResultScreen({
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
+          {routeReward && <ArrivalRewardCard reward={routeReward} />}
+
           {newlyUnlocked.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.96 }}

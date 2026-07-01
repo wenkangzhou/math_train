@@ -23,6 +23,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   autoReadQuestion: true,
   autoReadFeedback: true,
   speechRate: 'normal',
+  speechVoiceId: '',
   soundEnabled: true,
   animationLevel: 'standard',
   adaptiveDifficulty: false,

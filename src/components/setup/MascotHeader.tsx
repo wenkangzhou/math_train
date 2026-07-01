@@ -1,6 +1,23 @@
-import { CloudOff, Sparkles } from 'lucide-react'
+import { CheckCircle2, CloudOff, LoaderCircle, Sparkles, WifiOff } from 'lucide-react'
+import { useOfflineStatus } from '@/lib/useOfflineStatus'
 
 export function MascotHeader() {
+  const { online, cacheStatus } = useOfflineStatus()
+  const offlineLabel = !online
+    ? '离线练习中'
+    : cacheStatus === 'ready'
+      ? '已可离线'
+      : cacheStatus === 'checking'
+        ? '正在准备离线'
+        : '需保持联网'
+  const offlineIcon = !online
+    ? <WifiOff size={15} />
+    : cacheStatus === 'ready'
+      ? <CheckCircle2 size={15} />
+      : cacheStatus === 'checking'
+        ? <LoaderCircle size={15} className="animate-spin" />
+        : <CloudOff size={15} />
+
   return (
     <header className="flex items-center justify-between gap-4 px-1">
       <div className="flex items-center gap-3">
@@ -17,8 +34,11 @@ export function MascotHeader() {
         </div>
       </div>
       <div className="hidden items-center gap-2 sm:flex">
-        <span className="flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white">
-          <CloudOff size={15} /> 可离线使用
+        <span
+          role="status"
+          className="flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white"
+        >
+          {offlineIcon} {offlineLabel}
         </span>
         <span className="flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-2 text-xs font-bold text-sky-deep shadow-sm ring-1 ring-white">
           <Sparkles size={15} /> 适合 4–7 岁

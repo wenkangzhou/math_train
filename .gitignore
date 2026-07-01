@@ -18,6 +18,7 @@ screenshots
 
 # 本地语音盲听生成物（脚本和文案入库，音频不入库）
 voice-lab/audio/
+voice-lab/.venv/
 
 # Editor
 .vscode/*

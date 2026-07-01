@@ -17,6 +17,13 @@ export function speechSupported(): boolean {
 let cachedVoice: SpeechSynthesisVoice | null = null
 let voiceResolved = false
 
+export interface SpeechVoiceOption {
+  id: string
+  label: string
+  lang: string
+  local: boolean
+}
+
 const FEMALE_HINTS = [
   'ting-ting',
   'tingting',
@@ -36,25 +43,49 @@ function isChinese(v: SpeechSynthesisVoice): boolean {
   return lang.startsWith('zh') || lang.includes('cmn')
 }
 
-function pickVoice(): SpeechSynthesisVoice | null {
+function chineseVoices(): SpeechSynthesisVoice[] {
   const s = synth()
-  if (!s) return null
+  if (!s) return []
   const voices = s.getVoices()
-  if (!voices || voices.length === 0) return null
+  if (!voices || voices.length === 0) return []
+  return voices.filter(isChinese)
+}
 
-  const zh = voices.filter(isChinese)
+export function listChineseVoiceOptions(): SpeechVoiceOption[] {
+  return chineseVoices()
+    .sort((a, b) => Number(b.localService) - Number(a.localService))
+    .map((voice) => ({
+      id: voice.voiceURI || voice.name,
+      label: `${voice.name}${voice.localService ? '（本机）' : '（可能需联网）'}`,
+      lang: voice.lang,
+      local: voice.localService,
+    }))
+}
+
+function pickVoice(preferredId = ''): SpeechSynthesisVoice | null {
+  const zh = chineseVoices()
   if (zh.length === 0) return null
+
+  if (preferredId) {
+    const selected = zh.find(
+      (voice) => voice.voiceURI === preferredId || voice.name === preferredId,
+    )
+    if (selected) return selected
+  }
 
   // 优先普通话 zh-CN，再偏好疑似女声名称
   const cn = zh.filter((v) => (v.lang || '').toLowerCase().includes('cn'))
-  const pool = cn.length > 0 ? cn : zh
+  const localCn = cn.filter((voice) => voice.localService)
+  const localZh = zh.filter((voice) => voice.localService)
+  const pool = localCn.length > 0 ? localCn : localZh.length > 0 ? localZh : cn.length > 0 ? cn : zh
   const female = pool.find((v) =>
     FEMALE_HINTS.some((h) => (v.name || '').toLowerCase().includes(h)),
   )
   return female ?? pool[0]
 }
 
-function ensureVoice(): SpeechSynthesisVoice | null {
+function ensureVoice(preferredId = ''): SpeechSynthesisVoice | null {
+  if (preferredId) return pickVoice(preferredId)
   if (voiceResolved && cachedVoice) return cachedVoice
   const v = pickVoice()
   if (v) {
@@ -66,10 +97,10 @@ function ensureVoice(): SpeechSynthesisVoice | null {
 
 // 某些浏览器需要监听 voiceschanged 才能拿到列表
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
+  window.speechSynthesis.addEventListener('voiceschanged', () => {
     cachedVoice = pickVoice()
     voiceResolved = cachedVoice !== null
-  }
+  })
 }
 
 const RATE_MAP: Record<SpeechRate, number> = {
@@ -83,19 +114,38 @@ export function cancelSpeech(): void {
   if (s) s.cancel()
 }
 
-export function speak(text: string, rate: SpeechRate = 'normal'): void {
+export function speak(
+  text: string,
+  rate: SpeechRate = 'normal',
+  onFailure?: () => void,
+  preferredVoiceId = '',
+): boolean {
   const s = synth()
-  if (!s || !text) return
+  if (!s || !text) {
+    onFailure?.()
+    return false
+  }
   // 朗读前先取消上一段，避免重叠（PRD 5.2 / 验收 17）
   s.cancel()
   const u = new SpeechSynthesisUtterance(text)
-  const v = ensureVoice()
+  const v = ensureVoice(preferredVoiceId)
   if (v) u.voice = v
   u.lang = v?.lang || 'zh-CN'
   u.rate = RATE_MAP[rate] ?? 0.88
   u.pitch = 1.12 // 略高更亲切
   u.volume = 1
-  s.speak(u)
+  u.onerror = (event) => {
+    // 主动切换题目会 cancel 上一段语音，不把这种正常中断当成故障。
+    if (event.error === 'canceled' || event.error === 'interrupted') return
+    onFailure?.()
+  }
+  try {
+    s.speak(u)
+    return true
+  } catch {
+    onFailure?.()
+    return false
+  }
 }
 
 // ---------------------------------------------------------------------------

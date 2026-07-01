@@ -34,13 +34,13 @@ for (const vp of VIEWPORTS) {
   await page.waitForTimeout(600)
   await page.screenshot({ path: resolve(OUT, `${vp.name}-1-setup.png`) })
 
-  // 2) 练习页：点「开始练习」
-  await page.getByRole('button', { name: /开始练习/ }).click()
+  // 2) 练习页：点「开始做题」
+  await page.getByRole('button', { name: /开始做题/ }).click()
   await page.waitForTimeout(700)
   await page.screenshot({ path: resolve(OUT, `${vp.name}-2-practice.png`) })
 
-  // 展开提示（若有「看看小提示」按钮）
-  const hintBtn = page.getByRole('button', { name: /看看小提示/ })
+  // 展开图片提示
+  const hintBtn = page.getByRole('button', { name: '图片' })
   if (await hintBtn.count()) {
     await hintBtn.first().click()
     await page.waitForTimeout(400)
@@ -62,7 +62,7 @@ for (const vp of VIEWPORTS) {
   }
 
   for (let i = 0; i < 60; i++) {
-    if (await page.getByText(/今天完成了/).count()) break
+    if (await page.getByText(/这一趟完成/).count()) break
     const card = page.locator('div.bg-cream').first()
     if (!(await card.count())) break
     const ans = solve(await card.innerText())

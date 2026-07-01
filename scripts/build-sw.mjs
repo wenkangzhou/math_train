@@ -75,13 +75,17 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy))
           return response
         })
-        .catch(() => caches.match('/index.html').then((cached) => cached || caches.match('/'))),
+        .catch(() => caches.match('/index.html', { ignoreVary: true })
+          .then((cached) => cached || caches.match('/', { ignoreVary: true }))),
     )
     return
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+    // Vite preview/static hosts may add a Vary: Origin header; module-script requests then
+    // carry a different Origin header than precache requests. Ignore Vary for our
+    // own hashed, same-origin assets so offline JS/CSS reliably hit the cache.
+    caches.match(request, { ignoreVary: true }).then((cached) => cached || fetch(request).then((response) => {
       if (response.ok) {
         const copy = response.clone()
         caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))

@@ -40,6 +40,7 @@ describe('v1 → v2 数据迁移', () => {
     expect(s.settingsByProfile[pid].questionCount).toBe(20)
     expect(s.settingsByProfile[pid].autoShowVisualHint).toBe(true)
     expect(s.settingsByProfile[pid].speechRate).toBe(DEFAULT_PROFILE_SETTINGS.speechRate)
+    expect(s.settingsByProfile[pid].speechVoiceId).toBe('')
     expect(s.settingsByProfile[pid].soundEnabled).toBe(true)
     expect(s.settingsByProfile[pid].autoReadQuestion).toBe(true)
     expect(s.settingsByProfile[pid].autoReadFeedback).toBe(true)
@@ -222,7 +223,7 @@ describe('练习结算、奖励与长期错题', () => {
   it('累计星星跨过阈值时返回新解锁车厢', () => {
     const storage = createFreshStorage()
     const pid = storage.profiles[0].id
-    storage.rewardsByProfile[pid].stars = 49
+    storage.rewardsByProfile[pid].stars = 119
 
     const rewards = applyLearningResult(storage, {
       profileId: pid,
@@ -230,7 +231,7 @@ describe('练习结算、奖励与长期错题', () => {
       result: result({ firstTry: true }),
     })
 
-    expect(storage.rewardsByProfile[pid].stars).toBe(50)
+    expect(storage.rewardsByProfile[pid].stars).toBe(120)
     expect(rewards.newlyUnlocked.map((item) => item.id)).toContain('engine-red-express')
   })
 

@@ -20,8 +20,8 @@ describe('长期机车收藏目录', () => {
     const gaps = thresholds.slice(1).map((value, index) => value - thresholds[index])
 
     expect(thresholds[0]).toBe(0)
-    expect(thresholds[thresholds.length - 1]).toBe(3600)
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(50)
+    expect(thresholds[thresholds.length - 1]).toBe(5800)
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(120)
     expect(gaps.every((gap, index) => index === 0 || gap >= gaps[index - 1])).toBe(true)
   })
 })

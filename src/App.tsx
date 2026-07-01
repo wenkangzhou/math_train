@@ -36,7 +36,7 @@ type Screen = 'setup' | 'practice' | 'result'
 
 // 练习设置（含第二版的题型格式与细分技能）
 type ActiveSettings = PracticeSettings &
-  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate'>>
+  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId'>>
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('setup')

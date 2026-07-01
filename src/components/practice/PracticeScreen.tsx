@@ -31,6 +31,7 @@ interface PracticeScreenProps {
     autoReadQuestion?: boolean
     autoReadFeedback?: boolean
     speechRate?: SpeechRate
+    speechVoiceId?: string
   }
   reward: RewardState
   onComplete: (result: PracticeResult) => void
@@ -67,6 +68,7 @@ export function PracticeScreen({
   const [feedbackMsg, setFeedbackMsg] = useState('')
   const [locked, setLocked] = useState(false)
   const [showExit, setShowExit] = useState(false)
+  const [speechUnavailable, setSpeechUnavailable] = useState(false)
 
   const [stars, setStars] = useState(0)
   const [streak, setStreak] = useState(0)
@@ -81,6 +83,11 @@ export function PracticeScreen({
   const total = questions.length
   const maxDigit = question?.range ?? 10
   const speechRate = settings.speechRate ?? 'normal'
+  const speechVoiceId = settings.speechVoiceId ?? ''
+  const speakWithFallback = useCallback((text: string) => {
+    setSpeechUnavailable(false)
+    speak(text, speechRate, () => setSpeechUnavailable(true), speechVoiceId)
+  }, [speechRate, speechVoiceId])
   // 提示等级随答错次数提升（最高 3）
   const hintLevel = Math.min(attempts + (usedHint ? 1 : 0), 3) || 1
 
@@ -91,6 +98,7 @@ export function PracticeScreen({
     setShowHint(settings.autoShowVisualHint ? 'picture' : 'none')
     setFeedback('idle')
     setLocked(false)
+    setSpeechUnavailable(false)
     wrongAnswersRef.current = []
     startTimeRef.current = Date.now()
     cancelSpeech()
@@ -139,7 +147,7 @@ export function PracticeScreen({
       setFeedback('correct')
       setFeedbackMsg(message)
       playCorrect()
-      if (settings.autoReadFeedback) speak(message, speechRate)
+      if (settings.autoReadFeedback) speakWithFallback(message)
 
       recordsRef.current.push({
         questionId: question.id,
@@ -172,7 +180,7 @@ export function PracticeScreen({
       setFeedback('wrong')
       setFeedbackMsg(message)
       playWrong()
-      if (settings.autoReadFeedback) speak(message, speechRate)
+      if (settings.autoReadFeedback) speakWithFallback(message)
       if (settings.showHintAfterWrongAnswer) {
         setShowHint('picture')
         setUsedHint(true)
@@ -192,7 +200,7 @@ export function PracticeScreen({
     usedHint,
     settings.showHintAfterWrongAnswer,
     settings.autoReadFeedback,
-    speechRate,
+    speakWithFallback,
     advance,
   ])
 
@@ -238,8 +246,8 @@ export function PracticeScreen({
     if (!question) return
     setUsedHint(true)
     // 故事题优先朗读故事，否则朗读算式
-    speak(question.story ?? questionToSpeech(question), speechRate)
-  }, [question, speechRate])
+    speakWithFallback(question.story ?? questionToSpeech(question))
+  }, [question, speakWithFallback])
 
   // 离开练习页时停止朗读
   useEffect(() => cancelSpeech, [])
@@ -251,13 +259,13 @@ export function PracticeScreen({
   useEffect(() => {
     if (!question || !settings.autoReadQuestion) return
     const timer = window.setTimeout(() => {
-      speak(question.story ?? questionToSpeech(question), speechRate)
+      speakWithFallback(question.story ?? questionToSpeech(question))
     }, 280)
     return () => {
       window.clearTimeout(timer)
       cancelSpeech()
     }
-  }, [question, settings.autoReadQuestion, speechRate])
+  }, [question, settings.autoReadQuestion, speakWithFallback])
 
   const currentNumber = useMemo(() => index + 1, [index])
 
@@ -327,6 +335,15 @@ export function PracticeScreen({
                 label="朗读"
               />
             </div>
+
+            {speechUnavailable && (
+              <p
+                role="status"
+                className="mx-auto mt-2 max-w-md rounded-2xl bg-amber-50 px-4 py-2 text-center text-sm font-bold text-amber-700 ring-1 ring-amber-200"
+              >
+                🔇 这台设备暂时读不出声音，可以请大人帮忙读一下。
+              </p>
+            )}
 
             <AnimatePresence>
               {showHint !== 'none' && (

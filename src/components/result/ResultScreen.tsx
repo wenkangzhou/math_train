@@ -60,7 +60,7 @@ export function ResultScreen({
               {level.title}
             </h1>
             <p className="mt-1 text-lg font-bold text-slate-600">
-              完成 {result.total} 道题，收下 {result.stars} 颗星！
+              这一趟完成 {result.total} 道题，收下 {result.stars} 颗星！
             </p>
           </div>
 

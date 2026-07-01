@@ -50,6 +50,7 @@ export interface ProfileSettings extends PracticeSettings {
   autoReadQuestion: boolean
   autoReadFeedback: boolean
   speechRate: SpeechRate
+  speechVoiceId: string
   soundEnabled: boolean
 
   // —— 动画 ——

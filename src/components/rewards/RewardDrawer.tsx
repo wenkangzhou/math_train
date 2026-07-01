@@ -141,7 +141,7 @@ export function RewardDrawer({
                   我的小火车
                 </h2>
                 <p className="mt-0.5 text-sm font-medium text-slate-400">
-                  答题攒星，解锁不同颜色和功能的机车
+                  每趟先拿邮票，星星用来解锁新机车
                 </p>
               </div>
               <button
@@ -180,9 +180,9 @@ export function RewardDrawer({
                     className="absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-full bg-coral px-3 py-2 text-xs font-extrabold text-white shadow-md transition disabled:bg-slate-400"
                   >
                     <Play size={14} fill="currentColor" />
-                    {running ? '环线运行中…' : '环线出发'}
+                    {running ? '旅行中…' : '出发去旅行'}
                   </button>
-                  <TrainLoopScene
+                  <TrainJourneyScene
                     key={`${focusedTrain.id}-${runCycle}`}
                     item={focusedTrain}
                     route={focusedRoute}
@@ -190,6 +190,9 @@ export function RewardDrawer({
                     reduceMotion={Boolean(reduceMotion)}
                   />
                 </div>
+                <p className="mt-2 text-center text-xs font-extrabold text-white/90">
+                  🚉 {focusedRoute.destination} → 🐄 经过牧场 → 🚉 回到原站
+                </p>
 
                 {nextReward ? (
                   <div className="mt-4">
@@ -239,10 +242,10 @@ export function RewardDrawer({
                       <span className={earned ? 'text-3xl' : 'grayscale text-3xl opacity-35'} aria-hidden="true">
                         {route.stampEmoji}
                       </span>
-                      <span className="mt-1 max-w-full truncate text-[10px] font-extrabold">
+                      <span className="mt-1 max-w-full truncate text-xs font-extrabold">
                         {route.destination}
                       </span>
-                      <span className="text-[9px] font-bold text-slate-400">
+                      <span className="text-[11px] font-bold text-slate-400">
                         {earned ? `到站 ${trips} 次` : '等待出发'}
                       </span>
                     </div>
@@ -282,7 +285,7 @@ export function RewardDrawer({
                       <span className="mt-1 text-sm font-extrabold text-slate-700">
                         {item.name}
                       </span>
-                      <span className="mt-0.5 text-[11px] font-bold text-slate-400">
+                      <span className="mt-0.5 text-xs font-bold text-slate-400">
                         {item.emoji} {item.functionLabel}
                       </span>
                       {!unlocked && (
@@ -291,7 +294,7 @@ export function RewardDrawer({
                         </span>
                       )}
                       {selected && (
-                        <span className="absolute right-2 top-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                        <span className="absolute right-2 top-2 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-extrabold text-white">
                           使用中
                         </span>
                       )}
@@ -342,7 +345,7 @@ export function RewardDrawer({
                   </header>
 
                   <div className="relative mt-4 h-40 overflow-hidden rounded-[24px] bg-gradient-to-b from-sky-100 via-white to-green-100 ring-1 ring-sky-100">
-                    <TrainLoopScene
+                    <TrainJourneyScene
                       key={`detail-${focusedTrain.id}-${runCycle}`}
                       item={focusedTrain}
                       route={focusedRoute}
@@ -369,7 +372,7 @@ export function RewardDrawer({
                       className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-coral px-4 text-sm font-extrabold text-white shadow-soft disabled:bg-slate-300"
                     >
                       <Play size={18} fill="currentColor" />
-                      {running ? '环线运行中…' : '环线试跑'}
+                      {running ? '旅行中…' : '让它跑一趟'}
                     </button>
                     {focusedUnlocked ? (
                       focusedTrain.id === selectedHead.id ? (
@@ -404,7 +407,7 @@ export function RewardDrawer({
 function TrainFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
-      <span className="block text-[11px] font-bold text-slate-400">{label}</span>
+      <span className="block text-xs font-bold text-slate-400">{label}</span>
       <span className="mt-0.5 block text-sm font-extrabold text-slate-700">{value}</span>
     </div>
   )
@@ -414,7 +417,7 @@ function TrainFact({ label, value }: { label: string; value: string }) {
 // so the wheels look like they're actually covering ground.
 const SLEEPER_OFFSETS = [3, 14, 25, 36, 47, 58, 69, 80, 91] as const
 
-function TrainLoopScene({
+function TrainJourneyScene({
   item,
   route,
   running,
@@ -490,16 +493,6 @@ function TrainLoopScene({
         <TrainEngineArt item={item} compact running={running && !reduceMotion} />
       </motion.div>
 
-      {running && !reduceMotion && (
-        <motion.div
-          className="absolute bottom-3 left-3 z-30 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-extrabold text-sky-700 shadow-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0, 1] }}
-          transition={{ duration: 11, times: [0, 0.04, 0.82, 0.92, 1] }}
-        >
-          出站旅行 · 最后回到原站
-        </motion.div>
-      )}
     </div>
   )
 }
@@ -529,7 +522,7 @@ function SceneryTile({
 
       {/* Station platform + destination sign (origin = destination) */}
       <div className="absolute bottom-[36px] left-[5%] z-[15] flex flex-col items-center">
-        <span className="flex max-w-[96px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[9px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
+        <span className="flex max-w-[110px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[11px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
           <MapPin size={10} className="shrink-0" /> {route.destination}
         </span>
         <span className="h-8 w-1.5 bg-slate-500" />

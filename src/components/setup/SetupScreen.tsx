@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock3,
   Rocket,
+  Settings2,
   Sparkles,
   Star,
   Target,
@@ -51,11 +52,12 @@ export type StartSettings = PracticeSettings & {
   autoReadQuestion: boolean
   autoReadFeedback: boolean
   speechRate: SpeechRate
+  speechVoiceId: string
 }
 
 interface SetupScreenProps {
   initialSettings: PracticeSettings &
-    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate'>>
+    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId'>>
   history: StoredHistory
   practiceHistory: PracticeHistoryItem[]
   reward: RewardState
@@ -116,11 +118,18 @@ export function SetupScreen({
   const [autoReadFeedback, setAutoReadFeedback] = useState(
     initialSettings.autoReadFeedback ?? true,
   )
+  const [speechRate, setSpeechRate] = useState<SpeechRate>(
+    initialSettings.speechRate ?? 'normal',
+  )
+  const [speechVoiceId, setSpeechVoiceId] = useState(
+    initialSettings.speechVoiceId ?? '',
+  )
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [rewardOpen, setRewardOpen] = useState(false)
   const [wrongBookOpen, setWrongBookOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [helperOpen, setHelperOpen] = useState(false)
+  const [taskSettingsOpen, setTaskSettingsOpen] = useState(false)
 
   useEffect(() => {
     setGlobalSoundEnabled(soundEnabled)
@@ -223,7 +232,8 @@ export function SetupScreen({
       soundEnabled,
       autoReadQuestion,
       autoReadFeedback,
-      speechRate: initialSettings.speechRate ?? 'normal',
+      speechRate,
+      speechVoiceId,
     })
   }
 
@@ -235,11 +245,11 @@ export function SetupScreen({
     ? Math.round(history.entries[0].accuracy * 100)
     : null
   const todayKey = new Date().toDateString()
-  const todayQuestions = history.entries
-    .filter((entry) => new Date(entry.date).toDateString() === todayKey)
-    .reduce((sum, entry) => sum + entry.total, 0)
-  const dailyTarget = 10
-  const dailyProgress = Math.min(100, (todayQuestions / dailyTarget) * 100)
+  const todayEntries = history.entries.filter(
+    (entry) => new Date(entry.date).toDateString() === todayKey,
+  )
+  const todayQuestions = todayEntries.reduce((sum, entry) => sum + entry.total, 0)
+  const todayTrips = todayEntries.length
   const pendingWrongCount = wrongRecords.filter((item) => isReviewDue(item)).length
   const enabledHelperCount = [
     autoShowVisualHint,
@@ -257,6 +267,15 @@ export function SetupScreen({
     : ranges.length === 1
       ? ranges[0].includes('20') ? '20 以内' : '10 以内'
       : `${ranges.length} 个范围`
+  const operationSummary = hasAddition && hasSubtraction
+    ? '加减法'
+    : hasSubtraction
+      ? '减法'
+      : '加法'
+  const formatSummary = FORMAT_OPTIONS
+    .filter((option) => formats.includes(option.id))
+    .map((option) => option.label)
+    .join('、')
 
   const startButtonClass = [
     'flex min-h-16 w-full items-center justify-center gap-3 rounded-full py-4 text-xl font-extrabold text-white shadow-[0_12px_28px_-12px_rgba(255,138,101,0.8)] transition',
@@ -294,25 +313,28 @@ export function SetupScreen({
           </div>
 
           <div className="relative mt-5 rounded-3xl bg-white/15 p-4 ring-1 ring-white/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between text-sm font-bold">
-              <span className="flex items-center gap-2">
-                <Target size={18} /> 今天已完成 {todayQuestions} 题
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-sm font-extrabold">
+                <Target size={18} /> 这一趟做 {count} 题
               </span>
-              <span>{Math.min(todayQuestions, dailyTarget)}/{dailyTarget}</span>
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-300 px-2.5 py-1 text-xs font-extrabold text-amber-900">
+                做完到站
+              </span>
             </div>
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-sky-950/15">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${dailyProgress}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-yellow-200"
-              />
+            <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-2xl bg-white/10 px-2 py-2.5">
+                <span className="block text-xl font-extrabold">{todayTrips} 趟</span>
+                <span className="text-xs font-bold text-white/75">今天已开</span>
+              </div>
+              <div className="rounded-2xl bg-white/10 px-2 py-2.5">
+                <span className="block text-xl font-extrabold">{todayQuestions}</span>
+                <span className="text-xs font-bold text-white/75">今天完成题数</span>
+              </div>
             </div>
-            <p className="mt-2 text-xs text-white/70">
-              {todayQuestions >= dailyTarget
-                ? `${currentRoute.stampEmoji} 今日任务完成，继续出发还能累计到站次数`
-                : routeTripCount > 0
-                  ? `这条路线已到站 ${routeTripCount} 次 · 再做 ${dailyTarget - todayQuestions} 题完成今日任务`
-                  : `完成一轮练习，领取第一枚${currentRoute.destination}邮票`}
+            <p className="mt-2 text-sm font-semibold text-white/80">
+              {routeTripCount > 0
+                ? `${currentRoute.stampEmoji} 已去过${currentRoute.destination} ${routeTripCount} 次，再出发还能收集到站次数`
+                : `${currentRoute.stampEmoji} 做完这一趟，领取第一枚${currentRoute.destination}邮票`}
             </p>
           </div>
 
@@ -332,8 +354,6 @@ export function SetupScreen({
               type="button"
               disabled={!canStart}
               whileTap={canStart ? { scale: 0.96 } : undefined}
-              animate={canStart && !reduceMotion ? { scale: [1, 1.018, 1] } : undefined}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               onClick={handleStart}
               className={[
                 'relative flex min-h-[82px] w-full items-center gap-3 rounded-[26px] px-4 text-left shadow-[0_16px_34px_-14px_rgba(251,146,60,0.95)] ring-4 ring-white/35 transition focus:outline-none focus-visible:ring-white',
@@ -377,7 +397,7 @@ export function SetupScreen({
               </span>
               <span className="min-w-0">
                 <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">我的小火车</span>
-                <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
+                <span className="mt-0.5 block whitespace-nowrap text-xs font-semibold text-white/75">
                   已解锁 {reward.unlockedCarriages.length} 辆
                 </span>
               </span>
@@ -393,7 +413,7 @@ export function SetupScreen({
               </span>
               <span className="min-w-0">
                 <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">长期错题本</span>
-                <span className="mt-0.5 block whitespace-nowrap text-[10px] font-semibold text-white/70">
+                <span className="mt-0.5 block whitespace-nowrap text-xs font-semibold text-white/75">
                   今日复习 {pendingWrongCount} 题
                 </span>
               </span>
@@ -403,51 +423,106 @@ export function SetupScreen({
         </aside>
 
         <main className="grid content-start gap-3 ipad-land:min-h-0 ipad-land:overflow-y-auto ipad-land:pr-1">
-          <SectionCard title="1. 选择练习范围" hint="可以多选">
-            <RangeSelector selected={ranges} onToggle={toggleRange} />
-          </SectionCard>
-
-          <SectionCard title="2. 选择算式题型" hint="蓝色表示已选择">
-            <PatternSelector
-              selected={patterns}
-              additionEnabled={hasAddition}
-              subtractionEnabled={hasSubtraction}
-              onToggle={togglePattern}
-            />
-          </SectionCard>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <SectionCard title="3. 做几道题？">
-              <QuestionCountSelector value={count} onChange={setCount} />
-            </SectionCard>
-
-            <SectionCard title="4. 题目怎么出现？" hint="可多选">
-              <div className="grid grid-cols-3 gap-2">
-                {FORMAT_OPTIONS.map((f) => {
-                  const active = formats.includes(f.id)
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => toggleFormat(f.id)}
-                      className={[
-                        'flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border-2 px-2 py-2 text-sm font-bold transition',
-                        active
-                          ? 'border-sky bg-sky-soft/50 text-sky-deep shadow-sm'
-                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-sky/40',
-                      ].join(' ')}
-                    >
-                      <span aria-hidden="true">{f.emoji}</span>
-                      {f.label}
-                    </button>
-                  )
-                })}
+          <section className="rounded-[30px] bg-white/90 p-5 shadow-soft ring-1 ring-white/90 sm:p-6 ipad-land:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-2xl" aria-hidden="true">
+                  🎫
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-extrabold text-slate-700">本趟任务</h2>
+                  <p className="mt-1 text-sm font-bold text-slate-400">任务已经准备好，直接发车就可以</p>
+                </div>
               </div>
-            </SectionCard>
-          </div>
+              <span className="shrink-0 rounded-full bg-grass/15 px-3 py-1.5 text-xs font-extrabold text-emerald-700">
+                准备完成
+              </span>
+            </div>
 
-          <section className="overflow-hidden rounded-[26px] bg-white/85 shadow-soft ring-1 ring-white/80 backdrop-blur">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 ipad-land:grid-cols-2">
+              <TaskSummary emoji="🎯" label="练习内容" value={`${rangeSummary}${operationSummary}`} />
+              <TaskSummary emoji="🔢" label="这一趟" value={`${count} 道题`} />
+              <TaskSummary emoji="🖼️" label="题目样子" value={formatSummary} />
+              <TaskSummary emoji="🔊" label="学习帮手" value={`已开启 ${enabledHelperCount} 项`} />
+            </div>
+
+            <div className="mt-5 flex flex-col items-stretch justify-between gap-3 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:flex-row sm:items-center">
+              <p className="text-base font-extrabold text-amber-800">
+                ⬅️ 准备好后，按左边橙色按钮发车
+              </p>
+              <button
+                type="button"
+                aria-expanded={taskSettingsOpen}
+                aria-controls="task-settings-panel"
+                onClick={() => setTaskSettingsOpen((open) => !open)}
+                className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-extrabold text-slate-600 shadow-sm ring-1 ring-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/40"
+              >
+                <Settings2 size={17} />
+                {taskSettingsOpen ? '收起设置' : '请大人调整任务'}
+                <ChevronDown
+                  size={18}
+                  className={taskSettingsOpen ? 'rotate-180 transition-transform' : 'transition-transform'}
+                />
+              </button>
+            </div>
+          </section>
+
+          <AnimatePresence initial={false}>
+            {taskSettingsOpen && (
+              <motion.div
+                id="task-settings-panel"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.24, ease: 'easeOut' }}
+                className="overflow-hidden"
+              >
+                <div className="grid gap-3 pt-1">
+                  <SectionCard title="1. 选择练习范围" hint="可以多选">
+                    <RangeSelector selected={ranges} onToggle={toggleRange} />
+                  </SectionCard>
+
+                  <SectionCard title="2. 选择算式题型" hint="蓝色表示已选择">
+                    <PatternSelector
+                      selected={patterns}
+                      additionEnabled={hasAddition}
+                      subtractionEnabled={hasSubtraction}
+                      onToggle={togglePattern}
+                    />
+                  </SectionCard>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SectionCard title="3. 做几道题？">
+                      <QuestionCountSelector value={count} onChange={setCount} />
+                    </SectionCard>
+
+                    <SectionCard title="4. 题目怎么出现？" hint="可多选">
+                      <div className="grid grid-cols-3 gap-2">
+                        {FORMAT_OPTIONS.map((f) => {
+                          const active = formats.includes(f.id)
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => toggleFormat(f.id)}
+                              className={[
+                                'flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border-2 px-2 py-2 text-sm font-bold transition',
+                                active
+                                  ? 'border-sky bg-sky-soft/50 text-sky-deep shadow-sm'
+                                  : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-sky/40',
+                              ].join(' ')}
+                            >
+                              <span aria-hidden="true">{f.emoji}</span>
+                              {f.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </SectionCard>
+                  </div>
+
+                  <section className="overflow-hidden rounded-[26px] bg-white/85 shadow-soft ring-1 ring-white/80 backdrop-blur">
             <button
               type="button"
               aria-expanded={helperOpen}
@@ -491,36 +566,44 @@ export function SetupScreen({
                       soundEnabled={soundEnabled}
                       autoReadQuestion={autoReadQuestion}
                       autoReadFeedback={autoReadFeedback}
+                      speechRate={speechRate}
+                      speechVoiceId={speechVoiceId}
                       onChangeAutoShow={setAutoShow}
                       onChangeAfterWrong={setAfterWrong}
                       onChangeSound={setSoundEnabled}
                       onChangeAutoReadQuestion={setAutoReadQuestion}
                       onChangeAutoReadFeedback={setAutoReadFeedback}
+                      onChangeSpeechRate={setSpeechRate}
+                      onChangeSpeechVoice={setSpeechVoiceId}
                     />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </section>
+                  </section>
 
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen(true)}
-            className="flex w-full items-center justify-between rounded-3xl bg-white/75 px-5 py-3.5 text-left shadow-soft ring-1 ring-white/80 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/40"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-500">
-                <Sparkles size={20} />
-              </span>
-              <span>
-                <span className="block text-base font-extrabold text-slate-700">难度细分</span>
-                <span className="block text-xs font-medium text-slate-400">
-                  {skillTags.length > 0 ? `已选择 ${skillTags.length} 个专项技能` : '进阶设置，可按专项技能出题'}
-                </span>
-              </span>
-            </span>
-            <ChevronRight size={22} className="text-slate-400" />
-          </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdvancedOpen(true)}
+                    className="flex w-full items-center justify-between rounded-3xl bg-white/75 px-5 py-3.5 text-left shadow-soft ring-1 ring-white/80 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/40"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-500">
+                        <Sparkles size={20} />
+                      </span>
+                      <span>
+                        <span className="block text-base font-extrabold text-slate-700">难度细分</span>
+                        <span className="block text-xs font-medium text-slate-400">
+                          {skillTags.length > 0 ? `已选择 ${skillTags.length} 个专项技能` : '进阶设置，可按专项技能出题'}
+                        </span>
+                      </span>
+                    </span>
+                    <ChevronRight size={22} className="text-slate-400" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
 
@@ -573,6 +656,26 @@ export function SetupScreen({
           </motion.button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function TaskSummary({
+  emoji,
+  label,
+  value,
+}: {
+  emoji: string
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex min-h-[88px] items-center gap-3 rounded-3xl bg-sky-50/80 px-4 py-3 ring-1 ring-sky-100">
+      <span className="text-2xl" aria-hidden="true">{emoji}</span>
+      <span className="min-w-0">
+        <span className="block text-xs font-bold text-slate-400">{label}</span>
+        <span className="mt-0.5 block truncate text-base font-extrabold text-slate-700">{value}</span>
+      </span>
     </div>
   )
 }

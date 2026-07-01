@@ -12,67 +12,67 @@ export const CARRIAGE_CATALOG: Carriage[] = [
   {
     id: 'engine-red-express', kind: 'head', name: '赤焰号', functionLabel: '快速客运',
     personality: '热情又勇敢', description: '最喜欢准时抵达，是车库里的速度小冠军。',
-    livery: 'red', emoji: '⚡', unlockAtStars: 50,
+    livery: 'red', emoji: '⚡', unlockAtStars: 120,
   },
   {
     id: 'engine-green-freight', kind: 'head', name: '青林号', functionLabel: '重载货运',
     personality: '力气大又耐心', description: '再重的货箱也不怕，总会认真检查每一次装载。',
-    livery: 'green', emoji: '📦', unlockAtStars: 130,
+    livery: 'green', emoji: '📦', unlockAtStars: 300,
   },
   {
     id: 'engine-yellow-mail', kind: 'head', name: '金邮号', functionLabel: '邮政专列',
     personality: '细心又守时', description: '带着信件穿过小镇，把每份想念送到家。',
-    livery: 'yellow', emoji: '✉️', unlockAtStars: 240,
+    livery: 'yellow', emoji: '✉️', unlockAtStars: 550,
   },
   {
     id: 'engine-orange-rescue', kind: 'head', name: '暖阳号', functionLabel: '救援机车',
     personality: '温暖又果断', description: '听见求助就马上出发，是大家最安心的伙伴。',
-    livery: 'orange', emoji: '🛟', unlockAtStars: 380,
+    livery: 'orange', emoji: '🛟', unlockAtStars: 850,
   },
   {
     id: 'engine-navy-harbor', kind: 'head', name: '海港号', functionLabel: '港口调车',
     personality: '沉稳又聪明', description: '熟悉每一条岔道，能把货车安排得整整齐齐。',
-    livery: 'navy', emoji: '⚓', unlockAtStars: 550,
+    livery: 'navy', emoji: '⚓', unlockAtStars: 1200,
   },
   {
     id: 'engine-purple-night', kind: 'head', name: '极光号', functionLabel: '夜间卧铺',
     personality: '安静又体贴', description: '在月光下轻轻行驶，让乘客一觉睡到清晨。',
-    livery: 'purple', emoji: '🌙', unlockAtStars: 760,
+    livery: 'purple', emoji: '🌙', unlockAtStars: 1600,
   },
   {
     id: 'engine-cyan-snow', kind: 'head', name: '雪峰号', functionLabel: '清雪作业',
     personality: '冷静又坚强', description: '大雪天也会清出安全轨道，让伙伴顺利通行。',
-    livery: 'cyan', emoji: '❄️', unlockAtStars: 1000,
+    livery: 'cyan', emoji: '❄️', unlockAtStars: 2050,
   },
   {
     id: 'engine-teal-builder', kind: 'head', name: '工程号', functionLabel: '线路检修',
     personality: '好奇又专注', description: '带着工具巡查铁轨，最擅长发现小问题。',
-    livery: 'teal', emoji: '🛠️', unlockAtStars: 1300,
+    livery: 'teal', emoji: '🛠️', unlockAtStars: 2550,
   },
   {
     id: 'engine-pink-festival', kind: 'head', name: '花火号', functionLabel: '节日专列',
     personality: '活泼又会逗笑', description: '车到哪里，欢乐和掌声就跟到哪里。',
-    livery: 'pink', emoji: '🎉', unlockAtStars: 1650,
+    livery: 'pink', emoji: '🎉', unlockAtStars: 3100,
   },
   {
     id: 'engine-slate-mountain', kind: 'head', name: '山岳号', functionLabel: '山区牵引',
     personality: '坚定又踏实', description: '擅长攀上陡坡，是高山线路的可靠队长。',
-    livery: 'slate', emoji: '⛰️', unlockAtStars: 2050,
+    livery: 'slate', emoji: '⛰️', unlockAtStars: 3700,
   },
   {
     id: 'engine-lime-energy', kind: 'head', name: '绿电号', functionLabel: '电力机车',
     personality: '清爽又高效', description: '安静省电地飞驰，最爱干净的蓝天。',
-    livery: 'lime', emoji: '⚡', unlockAtStars: 2500,
+    livery: 'lime', emoji: '⚡', unlockAtStars: 4350,
   },
   {
     id: 'engine-rose-sunrise', kind: 'head', name: '晨曦号', functionLabel: '长途客运',
     personality: '开朗又有耐力', description: '迎着日出跨越远方，总能带回新故事。',
-    livery: 'rose', emoji: '☀️', unlockAtStars: 3000,
+    livery: 'rose', emoji: '☀️', unlockAtStars: 5050,
   },
   {
     id: 'engine-indigo-galaxy', kind: 'head', name: '星河号', functionLabel: '梦幻特快',
     personality: '神秘又有想象力', description: '沿着星光轨道出发，把美梦送往下一站。',
-    livery: 'indigo', emoji: '✨', unlockAtStars: 3600,
+    livery: 'indigo', emoji: '✨', unlockAtStars: 5800,
   },
 ]
 

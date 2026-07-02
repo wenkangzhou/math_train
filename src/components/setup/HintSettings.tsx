@@ -120,14 +120,14 @@ export function HintSettings({
   return (
     <div className="grid gap-3 sm:grid-cols-2 ipad-land:grid-cols-3">
       <ToggleRow
-        label="自动显示图片提示"
-        description="每道题自动显示数量图片"
+        label="自动显示学习提示"
+        description="每道题自动推荐合适的帮助方法"
         checked={autoShowVisualHint}
         onChange={onChangeAutoShow}
       />
       <ToggleRow
         label="答错后自动显示提示"
-        description="答错时自动展开小提示"
+        description="答错时自动打开合适的帮助"
         checked={showHintAfterWrongAnswer}
         onChange={onChangeAfterWrong}
       />

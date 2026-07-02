@@ -149,8 +149,9 @@ export function speak(
     onFailure?.()
     return false
   }
-  // 朗读前先取消上一段，避免重叠（PRD 5.2 / 验收 17）
-  s.cancel()
+  // Safari / WebKit 在空闲时执行 cancel() 后立刻 speak()，偶尔会吞掉第一段语音。
+  // 只有确实存在正在播放或排队的内容时才取消，仍然避免两段朗读重叠。
+  if (s.speaking || s.pending) s.cancel()
   const u = new SpeechSynthesisUtterance(text)
   const v = ensureVoice(preferredVoiceId)
   if (v) u.voice = v

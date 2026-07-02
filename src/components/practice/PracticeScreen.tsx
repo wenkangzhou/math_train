@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Hand, Image as ImageIcon, Ruler, Volume2 } from 'lucide-react'
+import { Lightbulb, RefreshCw, Volume2 } from 'lucide-react'
 import type {
   AnswerRecord,
   PracticeResult,
@@ -21,8 +21,14 @@ import { FeedbackOverlay } from './FeedbackOverlay'
 import { ConfirmExitDialog } from '@/components/common/ConfirmExitDialog'
 import { playCorrect, playWrong, playTap, setSoundEnabled } from '@/lib/sound'
 import { speak, cancelSpeech, questionToSpeech } from '@/lib/speech'
+import {
+  alternateHintMethod,
+  objectHintMode,
+  recommendedHintMethod,
+  type GuidedHintMethod,
+} from '@/lib/hintStrategy'
 
-type HintPanel = 'none' | 'picture' | 'numberline' | 'drag'
+type HintPanel = 'none' | GuidedHintMethod
 
 interface PracticeScreenProps {
   questions: Question[]
@@ -61,9 +67,12 @@ export function PracticeScreen({
   const [entered, setEntered] = useState<number | null>(null)
   const [attempts, setAttempts] = useState(0)
   const [usedHint, setUsedHint] = useState(false)
-  const [showHint, setShowHint] = useState<HintPanel>(
-    settings.autoShowVisualHint ? 'picture' : 'none',
-  )
+  const [showHint, setShowHint] = useState<HintPanel>(() => {
+    const firstQuestion = questions[0]
+    return settings.autoShowVisualHint && firstQuestion
+      ? recommendedHintMethod(firstQuestion, 0)
+      : 'none'
+  })
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle')
   const [feedbackMsg, setFeedbackMsg] = useState('')
   const [locked, setLocked] = useState(false)
@@ -91,11 +100,15 @@ export function PracticeScreen({
   // 提示等级随答错次数提升（最高 3）
   const hintLevel = Math.min(attempts + (usedHint ? 1 : 0), 3) || 1
 
-  const resetForQuestion = useCallback(() => {
+  const resetForQuestion = useCallback((nextQuestion: Question) => {
     setEntered(null)
     setAttempts(0)
     setUsedHint(false)
-    setShowHint(settings.autoShowVisualHint ? 'picture' : 'none')
+    setShowHint(
+      settings.autoShowVisualHint
+        ? recommendedHintMethod(nextQuestion, 0)
+        : 'none',
+    )
     setFeedback('idle')
     setLocked(false)
     setSpeechUnavailable(false)
@@ -131,10 +144,11 @@ export function PracticeScreen({
     if (index + 1 >= total) {
       finish()
     } else {
-      setIndex((i) => i + 1)
-      resetForQuestion()
+      const nextIndex = index + 1
+      setIndex(nextIndex)
+      resetForQuestion(questions[nextIndex])
     }
-  }, [index, total, finish, resetForQuestion])
+  }, [index, total, finish, questions, resetForQuestion])
 
   const handleConfirm = useCallback(() => {
     if (entered === null || locked || feedback !== 'idle' || !question) return
@@ -182,7 +196,7 @@ export function PracticeScreen({
       playWrong()
       if (settings.autoReadFeedback) speakWithFallback(message)
       if (settings.showHintAfterWrongAnswer) {
-        setShowHint('picture')
+        setShowHint(recommendedHintMethod(question, nextAttempts))
         setUsedHint(true)
       }
       // 晃动结束后清空输入，留在本题继续尝试，不公布答案
@@ -236,11 +250,22 @@ export function PracticeScreen({
     return () => window.removeEventListener('keydown', onKey)
   }, [showExit, locked, feedback, maxDigit, handleConfirm])
 
-  // 切换提示面板：点已开的关闭，否则打开（一次只展开一个）。打开即记为用过提示。
-  const openPanel = useCallback((p: HintPanel) => {
-    setShowHint((prev) => (prev === p ? 'none' : p))
+  // 孩子只做“要不要帮助”的选择，具体方法由题型和当前困难程度推荐。
+  const toggleHelp = useCallback(() => {
+    setShowHint((prev) =>
+      prev === 'none' ? recommendedHintMethod(question, attempts) : 'none',
+    )
     setUsedHint(true)
-  }, [])
+  }, [attempts, question])
+
+  const changeHelpMethod = useCallback(() => {
+    setShowHint((prev) =>
+      prev === 'none'
+        ? recommendedHintMethod(question, attempts)
+        : alternateHintMethod(prev),
+    )
+    setUsedHint(true)
+  }, [attempts, question])
 
   const speakQuestion = useCallback(() => {
     if (!question) return
@@ -270,6 +295,13 @@ export function PracticeScreen({
   const currentNumber = useMemo(() => index + 1, [index])
 
   if (!question) return null
+
+  const concreteMode = objectHintMode(question)
+  const helpTitle = showHint === 'numberline'
+    ? '🚂 小火车走一走'
+    : concreteMode === 'manipulative'
+      ? '🖐️ 摆一摆'
+      : '🔢 数一数'
 
   return (
     <div
@@ -311,22 +343,12 @@ export function PracticeScreen({
           <div className="relative w-full">
             <div className="flex flex-wrap items-center justify-center gap-2 ipad-land:gap-2.5">
               <HintTab
-                active={showHint === 'picture'}
-                onClick={() => openPanel('picture')}
-                icon={<ImageIcon size={18} />}
-                label="图片"
-              />
-              <HintTab
-                active={showHint === 'numberline'}
-                onClick={() => openPanel('numberline')}
-                icon={<Ruler size={18} />}
-                label="数轴"
-              />
-              <HintTab
-                active={showHint === 'drag'}
-                onClick={() => openPanel('drag')}
-                icon={<Hand size={18} />}
-                label="拖一拖"
+                active={showHint !== 'none'}
+                onClick={toggleHelp}
+                icon={<Lightbulb size={19} />}
+                label="帮帮我"
+                expanded={showHint !== 'none'}
+                controls="learning-helper-panel"
               />
               <HintTab
                 active={false}
@@ -355,15 +377,32 @@ export function PracticeScreen({
                   transition={{ duration: 0.2 }}
                   role="region"
                   aria-label="学习辅助内容"
+                  id="learning-helper-panel"
+                  data-hint-method={showHint}
                   className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[360px] ipad-land:p-2"
                 >
-                  {showHint === 'picture' && (
+                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                    <p className="text-sm font-extrabold text-slate-600 sm:text-base">
+                      {helpTitle}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={changeHelpMethod}
+                      className="flex min-h-9 shrink-0 items-center gap-1 rounded-full bg-sky-50 px-3 text-xs font-extrabold text-sky-deep ring-1 ring-sky-100 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/30"
+                    >
+                      <RefreshCw size={14} />
+                      换个方法
+                    </button>
+                  </div>
+                  {showHint === 'objects' && concreteMode === 'picture' && (
                     <VisualHint key={question.id} question={question} level={hintLevel} />
+                  )}
+                  {showHint === 'objects' && concreteMode === 'manipulative' && (
+                    <DragHint key={question.id} question={question} />
                   )}
                   {showHint === 'numberline' && (
                     <NumberLineHint key={question.id} question={question} />
                   )}
-                  {showHint === 'drag' && <DragHint key={question.id} question={question} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -398,16 +437,22 @@ function HintTab({
   onClick,
   icon,
   label,
+  expanded,
+  controls,
 }: {
   active: boolean
   onClick: () => void
   icon: React.ReactNode
   label: string
+  expanded?: boolean
+  controls?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-expanded={expanded}
+      aria-controls={controls}
       className={[
         'flex min-h-11 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold shadow-soft transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300 sm:text-base ipad-land:px-4 ipad-land:py-2 ipad-land:text-sm',
         active

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Question } from '@/types/math'
-import { numberToZh, primeSpeech, questionToSpeech } from './speech'
+import { numberToZh, primeSpeech, questionToSpeech, speak } from './speech'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -70,5 +70,33 @@ describe('题目朗读文本', () => {
       rate: 10,
       volume: 0,
     })
+  })
+
+  it('语音空闲时不先 cancel，避免 WebKit 吞掉第一段朗读', () => {
+    const cancel = vi.fn()
+    const speakUtterance = vi.fn()
+    vi.stubGlobal('window', {
+      speechSynthesis: {
+        speaking: false,
+        pending: false,
+        speak: speakUtterance,
+        cancel,
+        getVoices: () => [],
+      },
+    })
+    vi.stubGlobal(
+      'SpeechSynthesisUtterance',
+      class {
+        lang = ''
+        rate = 1
+        pitch = 1
+        volume = 1
+        onerror: ((event: { error: string }) => void) | null = null
+      },
+    )
+
+    expect(speak('三加二等于几？')).toBe(true)
+    expect(cancel).not.toHaveBeenCalled()
+    expect(speakUtterance).toHaveBeenCalledOnce()
   })
 })

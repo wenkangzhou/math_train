@@ -16,6 +16,7 @@ export function speechSupported(): boolean {
 // 语音可能异步加载，缓存一次挑选结果
 let cachedVoice: SpeechSynthesisVoice | null = null
 let voiceResolved = false
+let speechPrimed = false
 
 export interface SpeechVoiceOption {
   id: string
@@ -112,6 +113,29 @@ const RATE_MAP: Record<SpeechRate, number> = {
 export function cancelSpeech(): void {
   const s = synth()
   if (s) s.cancel()
+}
+
+// iPad / iPhone 的 WebKit 可能不允许页面加载后的定时器直接启动语音。
+// 必须在“开始答题”这类真实点击手势里先放入一段无声语音，后续题目才能稳定自动朗读。
+export function primeSpeech(): boolean {
+  const s = synth()
+  if (!s) return false
+
+  try {
+    s.resume()
+    if (speechPrimed) return true
+
+    const utterance = new SpeechSynthesisUtterance('\u200B')
+    utterance.lang = 'zh-CN'
+    utterance.rate = 10
+    utterance.volume = 0
+    s.speak(utterance)
+    speechPrimed = true
+    return true
+  } catch {
+    speechPrimed = false
+    return false
+  }
 }
 
 export function speak(

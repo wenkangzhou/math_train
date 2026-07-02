@@ -44,6 +44,7 @@ import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
 import { getTrainRoute } from '@/lib/trainRoutes'
 import { isReviewDue } from '@/lib/spacedReview'
 import { setSoundEnabled as setGlobalSoundEnabled } from '@/lib/sound'
+import { cancelSpeech, primeSpeech } from '@/lib/speech'
 
 export type StartSettings = PracticeSettings & {
   questionFormats: QuestionFormat[]
@@ -53,15 +54,18 @@ export type StartSettings = PracticeSettings & {
   autoReadFeedback: boolean
   speechRate: SpeechRate
   speechVoiceId: string
+  adaptiveDifficulty: boolean
+  allowHarder: boolean
 }
 
 interface SetupScreenProps {
   initialSettings: PracticeSettings &
-    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId'>>
+    Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId' | 'adaptiveDifficulty' | 'allowHarder'>>
   history: StoredHistory
   practiceHistory: PracticeHistoryItem[]
   reward: RewardState
   wrongRecords: WrongQuestionRecord[]
+  currentLevel: string
   onStart: (settings: StartSettings) => void
   onPracticeWrong: () => void
   onSelectHead: (id: string) => void
@@ -83,6 +87,7 @@ export function SetupScreen({
   practiceHistory,
   reward,
   wrongRecords,
+  currentLevel,
   onStart,
   onPracticeWrong,
   onSelectHead,
@@ -123,6 +128,12 @@ export function SetupScreen({
   )
   const [speechVoiceId, setSpeechVoiceId] = useState(
     initialSettings.speechVoiceId ?? '',
+  )
+  const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(
+    initialSettings.adaptiveDifficulty ?? false,
+  )
+  const [allowHarder, setAllowHarder] = useState(
+    initialSettings.allowHarder ?? false,
   )
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [rewardOpen, setRewardOpen] = useState(false)
@@ -217,6 +228,9 @@ export function SetupScreen({
 
   const handleStart = () => {
     if (!canStart) return
+    // iPad WebKit 要求在真实点击手势中激活语音；关闭时则清掉可能残留的试听。
+    if (autoReadQuestion) primeSpeech()
+    else cancelSpeech()
     // 仅保留与已选运算匹配的题型，保证设置整洁
     const effectivePatterns = patterns.filter((p) =>
       ADDITION_PATTERNS.includes(p) ? hasAddition : hasSubtraction,
@@ -234,6 +248,8 @@ export function SetupScreen({
       autoReadFeedback,
       speechRate,
       speechVoiceId,
+      adaptiveDifficulty,
+      allowHarder,
     })
   }
 
@@ -289,7 +305,7 @@ export function SetupScreen({
     <div className="mx-auto min-h-screen-safe max-w-6xl px-4 pb-32 pt-3 sm:px-6 ipad-land:flex ipad-land:flex-col ipad-land:px-7 ipad-land:pb-5 ipad-land:pt-4">
       <MascotHeader />
 
-      <div className="mt-3 grid gap-4 ipad-land:min-h-0 ipad-land:flex-1 ipad-land:grid-cols-[minmax(290px,0.8fr)_minmax(0,2fr)] ipad-land:gap-5">
+      <div className="mt-3 grid gap-4 ipad-land:min-h-0 ipad-land:flex-1 ipad-land:grid-cols-[minmax(330px,1fr)_minmax(0,2fr)] ipad-land:gap-5">
         {/* iPad 横屏的任务总览：让孩子先看到目标和主操作。 */}
         <aside className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-sky-deep via-sky to-cyan-300 p-5 text-white shadow-[0_22px_50px_-24px_rgba(43,143,214,0.8)] ipad-land:flex ipad-land:min-h-0 ipad-land:flex-col ipad-land:p-6">
           <div className="absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/15" />
@@ -390,14 +406,14 @@ export function SetupScreen({
               type="button"
               data-testid="open-rewards"
               onClick={() => setRewardOpen(true)}
-              className="flex min-h-[60px] min-w-0 items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+              className="flex min-h-[60px] min-w-0 overflow-hidden items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-300 text-amber-800">
                 <TrainFront size={19} />
               </span>
               <span className="min-w-0">
-                <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">我的小火车</span>
-                <span className="mt-0.5 block whitespace-nowrap text-xs font-semibold text-white/75">
+                <span className="block whitespace-nowrap text-xs font-extrabold leading-tight">我的小火车</span>
+                <span className="mt-0.5 block whitespace-nowrap text-[11px] font-semibold text-white/75">
                   已解锁 {reward.unlockedCarriages.length} 辆
                 </span>
               </span>
@@ -406,15 +422,15 @@ export function SetupScreen({
               type="button"
               data-testid="open-wrongbook"
               onClick={() => setWrongBookOpen(true)}
-              className="flex min-h-[60px] min-w-0 items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+              className="flex min-h-[60px] min-w-0 overflow-hidden items-center gap-1.5 rounded-2xl bg-white/15 px-2.5 text-left ring-1 ring-white/20 transition hover:bg-white/25 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-coral text-white">
                 <BookOpen size={18} />
               </span>
               <span className="min-w-0">
-                <span className="block whitespace-nowrap text-[13px] font-extrabold leading-tight">长期错题本</span>
-                <span className="mt-0.5 block whitespace-nowrap text-xs font-semibold text-white/75">
-                  今日复习 {pendingWrongCount} 题
+                <span className="block whitespace-nowrap text-xs font-extrabold leading-tight">长期错题本</span>
+                <span className="mt-0.5 block whitespace-nowrap text-[11px] font-semibold text-white/75">
+                  待修 {pendingWrongCount} 题
                 </span>
               </span>
             </button>
@@ -594,7 +610,11 @@ export function SetupScreen({
                       <span>
                         <span className="block text-base font-extrabold text-slate-700">难度细分</span>
                         <span className="block text-xs font-medium text-slate-400">
-                          {skillTags.length > 0 ? `已选择 ${skillTags.length} 个专项技能` : '进阶设置，可按专项技能出题'}
+                          {adaptiveDifficulty
+                            ? '已开启自动难度调节'
+                            : skillTags.length > 0
+                              ? `已选择 ${skillTags.length} 个专项技能`
+                              : '进阶设置，可按专项技能出题'}
                         </span>
                       </span>
                     </span>
@@ -610,9 +630,14 @@ export function SetupScreen({
       <AdvancedSettingsDrawer
         open={advancedOpen}
         skillTags={skillTags}
+        adaptiveDifficulty={adaptiveDifficulty}
+        allowHarder={allowHarder}
+        currentLevel={currentLevel}
         onClose={() => setAdvancedOpen(false)}
         onToggleSkill={toggleSkill}
         onClear={() => setSkillTags([])}
+        onChangeAdaptiveDifficulty={setAdaptiveDifficulty}
+        onChangeAllowHarder={setAllowHarder}
       />
 
       <RewardDrawer

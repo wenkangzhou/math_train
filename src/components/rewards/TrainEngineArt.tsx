@@ -45,15 +45,23 @@ export function TrainEngineArt({
       className={compact ? 'relative h-[72px] w-[102px]' : 'relative h-[92px] w-[132px]'}
       aria-hidden="true"
     >
-      {running && !compact && (
-        <span data-testid="train-smoke" className="absolute bottom-[78px] left-[88px] z-20">
+      {running && (
+        <span
+          data-testid="train-smoke"
+          className={compact
+            ? 'absolute bottom-[58px] left-[66px] z-20'
+            : 'absolute bottom-[78px] left-[88px] z-20'}
+        >
           {SMOKE_PUFFS.map((puff, index) => (
             <motion.i
               key={puff}
-              className="absolute h-4 w-4 rounded-full bg-white/80 shadow-sm"
+              className={[
+                'absolute rounded-full bg-white/80 shadow-sm',
+                compact ? 'h-3 w-3' : 'h-4 w-4',
+              ].join(' ')}
               initial={{ opacity: 0, x: 0, y: 0, scale: 0.6 }}
               animate={{ opacity: [0, 0.9, 0], x: [0, 8, 18], y: [0, -12, -26], scale: [0.6, 1, 1.5] }}
-              transition={{ duration: 1.25, repeat: Infinity, delay: index * 0.36 }}
+              transition={{ duration: 0.85, repeat: Infinity, delay: index * 0.24 }}
             />
           ))}
         </span>
@@ -134,7 +142,7 @@ function EngineWheels({
         <motion.span
           key={wheel}
           animate={running ? { rotate: 360 } : { rotate: 0 }}
-          transition={running ? { duration: 0.42, repeat: Infinity, ease: 'linear' } : undefined}
+          transition={running ? { duration: 0.26, repeat: Infinity, ease: 'linear' } : undefined}
           className={[
             'flex items-center justify-center rounded-full border-slate-700 shadow-sm ring-1 ring-white/70',
             palette.light,

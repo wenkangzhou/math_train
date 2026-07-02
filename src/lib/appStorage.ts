@@ -42,6 +42,7 @@ import {
 } from './spacedReview'
 import { dayDiff, todayStr } from './date'
 import { genId } from './id'
+import { nextAdaptiveLevel } from './adaptiveDifficulty'
 
 function hasLS(): boolean {
   return typeof localStorage !== 'undefined'
@@ -313,26 +314,41 @@ export function questionSignature(q: Question): string {
 
 export interface LearningResultParams {
   profileId: string
-  settings: PracticeSettings
+  settings: PracticeSettings &
+    Partial<Pick<ProfileSettings, 'adaptiveDifficulty' | 'allowHarder'>>
   result: PracticeResult
   now?: Date
+  sessionKind?: 'regular' | 'review'
+}
+
+export interface DifficultyChange {
+  from: string
+  to: string
 }
 
 export interface LearningResultUpdate {
   storage: AppStorage
   newlyUnlocked: Carriage[]
   routeReward: RouteReward
+  difficultyChange: DifficultyChange | null
 }
 
 export interface AppliedLearningRewards {
   newlyUnlocked: Carriage[]
   routeReward: RouteReward
+  difficultyChange: DifficultyChange | null
 }
 
 // 纯数据更新，便于单测；会原地更新传入的 storage。
 export function applyLearningResult(
   storage: AppStorage,
-  { profileId, settings, result, now: providedNow }: LearningResultParams,
+  {
+    profileId,
+    settings,
+    result,
+    now: providedNow,
+    sessionKind = 'regular',
+  }: LearningResultParams,
 ): AppliedLearningRewards {
   const now = providedNow ?? new Date()
   const nowIso = now.toISOString()
@@ -345,8 +361,10 @@ export function applyLearningResult(
     Number.isFinite(result.durationMs) ? Math.max(0, result.durationMs) : 0,
   )
 
+  const profile = storage.profiles.find((item) => item.id === profileId)
+  const difficultyStart = profile?.currentLevel ?? ''
   const history = storage.historyByProfile[profileId] ?? []
-  history.unshift({
+  const historyItem: PracticeHistoryItem = {
     id: genId('hist'),
     profileId,
     startedAt: new Date(now.getTime() - sessionDuration).toISOString(),
@@ -364,9 +382,21 @@ export function applyLearningResult(
       result.total > 0 ? Math.round(totalDuration / result.total) : 0,
     bestStreak: result.bestStreak,
     earnedStars: result.stars,
-    difficultyStart: storage.profiles.find((p) => p.id === profileId)?.currentLevel ?? '',
-    difficultyEnd: storage.profiles.find((p) => p.id === profileId)?.currentLevel ?? '',
-  })
+    difficultyStart,
+    difficultyEnd: difficultyStart,
+    sessionKind,
+  }
+  history.unshift(historyItem)
+
+  let difficultyChange: DifficultyChange | null = null
+  if (sessionKind === 'regular' && settings.adaptiveDifficulty && profile) {
+    const nextLevel = nextAdaptiveLevel(difficultyStart, history, settings)
+    profile.currentLevel = nextLevel
+    historyItem.difficultyEnd = nextLevel
+    if (nextLevel !== difficultyStart) {
+      difficultyChange = { from: difficultyStart, to: nextLevel }
+    }
+  }
   storage.historyByProfile[profileId] = history.slice(0, 200)
 
   const reward = storage.rewardsByProfile[profileId] ?? createDefaultRewardState(0)
@@ -465,7 +495,7 @@ export function applyLearningResult(
     .filter((id) => !beforeUnlocked.has(id))
     .map(getCarriage)
     .filter((item): item is Carriage => Boolean(item))
-  return { newlyUnlocked, routeReward }
+  return { newlyUnlocked, routeReward, difficultyChange }
 }
 
 export function recordLearningResult(

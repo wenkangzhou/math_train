@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type {
   PracticeResult,
@@ -9,7 +9,6 @@ import type {
 import type { Carriage, RouteReward } from '@/types/rewards'
 import { generateQuestions } from '@/lib/questionGenerator'
 import {
-  DEFAULT_SETTINGS,
   loadHistory,
   loadSettings,
   recordPractice,
@@ -28,25 +27,30 @@ import {
 } from '@/lib/appStorage'
 import {
   DEFAULT_PROFILE_SETTINGS,
+  DEFAULT_LEVEL,
   createDefaultRewardState,
 } from '@/lib/defaults'
 import { isReviewDue } from '@/lib/spacedReview'
+import { settingsForDifficulty } from '@/lib/adaptiveDifficulty'
 
 type Screen = 'setup' | 'practice' | 'result'
+type SessionKind = 'regular' | 'review'
 
 // 练习设置（含第二版的题型格式与细分技能）
 type ActiveSettings = PracticeSettings &
-  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId'>>
+  Partial<Pick<StartSettings, 'questionFormats' | 'skillTags' | 'soundEnabled' | 'autoReadQuestion' | 'autoReadFeedback' | 'speechRate' | 'speechVoiceId' | 'adaptiveDifficulty' | 'allowHarder'>>
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('setup')
-  const [settings, setSettings] = useState<ActiveSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<ActiveSettings>(() => loadSettings())
   const [questions, setQuestions] = useState<Question[]>([])
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [history, setHistory] = useState<StoredHistory>(() => loadHistory())
   const [learningData, setLearningData] = useState(() => loadAppStorage())
   const [newlyUnlocked, setNewlyUnlocked] = useState<Carriage[]>([])
   const [routeReward, setRouteReward] = useState<RouteReward | null>(null)
+  const [difficultyChange, setDifficultyChange] = useState<{ from: string; to: string } | null>(null)
+  const [sessionKind, setSessionKind] = useState<SessionKind>('regular')
 
   const profileId =
     learningData.activeProfileId ?? learningData.profiles[0]?.id ?? ''
@@ -55,16 +59,16 @@ export default function App() {
     createDefaultRewardState(history.totalStars)
   const wrongRecords = learningData.wrongQuestionsByProfile[profileId] ?? []
   const practiceHistory = learningData.historyByProfile[profileId] ?? []
+  const currentLevel = learningData.profiles.find((profile) => profile.id === profileId)?.currentLevel ?? DEFAULT_LEVEL
 
-  // 初始化：读取本地设置与累计星星
-  useEffect(() => {
-    setSettings(loadSettings())
-    setHistory(loadHistory())
-    setLearningData(loadAppStorage())
-  }, [])
+  const generateForSettings = useCallback(
+    (nextSettings: ActiveSettings) =>
+      generateQuestions(settingsForDifficulty(nextSettings, currentLevel)),
+    [currentLevel],
+  )
 
   const startWith = useCallback(
-    (s: ActiveSettings, qs: Question[]) => {
+    (s: ActiveSettings, qs: Question[], kind: SessionKind = 'regular') => {
       saveSettings(s)
       if (profileId) {
         setLearningData(saveProfileSettings(profileId, {
@@ -79,6 +83,8 @@ export default function App() {
       setResult(null)
       setNewlyUnlocked([])
       setRouteReward(null)
+      setDifficultyChange(null)
+      setSessionKind(kind)
       setScreen('practice')
     },
     [profileId],
@@ -87,9 +93,9 @@ export default function App() {
   // 从设置页开始
   const handleStart = useCallback(
     (s: StartSettings) => {
-      startWith(s, generateQuestions(s))
+      startWith(s, generateForSettings(s))
     },
-    [startWith],
+    [generateForSettings, startWith],
   )
 
   // 练习完成 → 统计 + 写入本地 → 结果页
@@ -113,15 +119,17 @@ export default function App() {
         profileId,
         settings,
         result: res,
+        sessionKind,
       })
       setLearningData(learningUpdate.storage)
       setNewlyUnlocked(learningUpdate.newlyUnlocked)
       setRouteReward(learningUpdate.routeReward)
+      setDifficultyChange(learningUpdate.difficultyChange)
     }
     setResult(res)
     setScreen('result')
     void level
-  }, [profileId, settings])
+  }, [profileId, sessionKind, settings])
 
   // 退出练习，回到设置
   const handleExit = useCallback(() => {
@@ -131,14 +139,14 @@ export default function App() {
   // 结果页操作
   const handleReplay = useCallback(() => {
     // 同样设置，重新生成新题
-    startWith(settings, generateQuestions(settings))
-  }, [settings, startWith])
+    startWith(settings, generateForSettings(settings))
+  }, [generateForSettings, settings, startWith])
 
   const handlePracticeWrong = useCallback(() => {
     if (!result || result.wrongQuestions.length === 0) return
     // 用错题原样再练一遍（重新洗一下顺序）
     const shuffled = [...result.wrongQuestions].sort(() => Math.random() - 0.5)
-    startWith(settings, shuffled)
+    startWith(settings, shuffled, 'review')
   }, [result, settings, startWith])
 
   const handlePracticeSavedWrong = useCallback(() => {
@@ -151,7 +159,7 @@ export default function App() {
     const shuffled = [...pendingQuestions].sort(
       () => Math.random() - 0.5,
     )
-    startWith(settings, shuffled)
+    startWith(settings, shuffled, 'review')
   }, [wrongRecords, settings, startWith])
 
   const handleSelectHead = useCallback((id: string) => {
@@ -181,6 +189,7 @@ export default function App() {
               practiceHistory={practiceHistory}
               reward={reward}
               wrongRecords={wrongRecords}
+              currentLevel={currentLevel}
               onStart={handleStart}
               onPracticeWrong={handlePracticeSavedWrong}
               onSelectHead={handleSelectHead}
@@ -219,6 +228,7 @@ export default function App() {
               totalStars={reward.stars}
               newlyUnlocked={newlyUnlocked}
               routeReward={routeReward}
+              difficultyChange={difficultyChange}
               onReplay={handleReplay}
               onPracticeWrong={handlePracticeWrong}
               onReconfigure={handleReconfigure}

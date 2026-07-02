@@ -8,12 +8,14 @@ import { Celebration } from './Celebration'
 import { ResultSummary } from './ResultSummary'
 import { ResultActions } from './ResultActions'
 import { ArrivalRewardCard } from './ArrivalRewardCard'
+import { getDifficultyLabel } from '@/lib/adaptiveDifficulty'
 
 interface ResultScreenProps {
   result: PracticeResult
   totalStars: number
   newlyUnlocked: Carriage[]
   routeReward: RouteReward | null
+  difficultyChange: { from: string; to: string } | null
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
@@ -24,6 +26,7 @@ export function ResultScreen({
   totalStars,
   newlyUnlocked,
   routeReward,
+  difficultyChange,
   onReplay,
   onPracticeWrong,
   onReconfigure,
@@ -87,6 +90,19 @@ export function ResultScreen({
                   </span>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {difficultyChange && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-[22px] bg-emerald-50 px-4 py-3 text-center ring-1 ring-emerald-200"
+            >
+              <p className="text-xs font-extrabold text-emerald-700">自动难度已调整</p>
+              <p className="mt-0.5 text-base font-extrabold text-slate-700">
+                下一趟：{getDifficultyLabel(difficultyChange.to)}
+              </p>
             </motion.div>
           )}
 

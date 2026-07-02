@@ -44,6 +44,7 @@ export interface PracticeHistoryItem {
   earnedStars: number
   difficultyStart: string
   difficultyEnd: string
+  sessionKind?: 'regular' | 'review'
 }
 
 // 每日练习进度

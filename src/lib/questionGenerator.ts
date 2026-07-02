@@ -109,7 +109,16 @@ function isTooTrivial(op: Operation, left: number, right: number): boolean {
  * - 减法：left - right = result，result >= 0
  * 大部分题中 left、right >= 1，并尽量避开过于简单的题。
  */
-function generateEquation(op: Operation, max: 10 | 20): Equation {
+function generateEquation(
+  op: Operation,
+  max: 10 | 20,
+  difficulty = 0.5,
+): Equation {
+  const normalizedDifficulty = Math.min(1, Math.max(0, difficulty))
+  const effectiveMax = max === 20
+    ? Math.max(10, Math.round(10 + normalizedDifficulty * 10))
+    : Math.max(5, Math.round(5 + normalizedDifficulty * 5))
+
   for (let attempt = 0; attempt < 40; attempt++) {
     let left: number
     let right: number
@@ -117,13 +126,13 @@ function generateEquation(op: Operation, max: 10 | 20): Equation {
 
     if (op === 'addition') {
       // 偏向 >= 1 的加数，结果不超过 max
-      left = randInt(1, max - 1)
-      const maxRight = max - left
+      left = randInt(1, effectiveMax - 1)
+      const maxRight = effectiveMax - left
       right = randInt(maxRight >= 1 ? 1 : 0, maxRight)
       result = left + right
     } else {
       // 减法：被减数 left <= max，减数 right <= left
-      left = randInt(2, max)
+      left = randInt(2, effectiveMax)
       right = randInt(1, left - 1 >= 1 ? left - 1 : left)
       result = left - right
     }
@@ -136,11 +145,11 @@ function generateEquation(op: Operation, max: 10 | 20): Equation {
 
   // 兜底：保证一定返回一个合法等式
   if (op === 'addition') {
-    const left = randInt(1, max - 1)
-    const right = randInt(1, max - left)
+    const left = randInt(1, effectiveMax - 1)
+    const right = randInt(1, effectiveMax - left)
     return { left, right, result: left + right }
   }
-  const left = randInt(2, max)
+  const left = randInt(2, effectiveMax)
   const right = randInt(1, left)
   return { left, right, result: left - right }
 }
@@ -181,7 +190,7 @@ export interface GenerateOneOptions {
 }
 
 export function generateQuestion(opts: GenerateOneOptions): Question {
-  const { ranges, patterns, skillTags } = opts
+  const { ranges, patterns, skillTags, difficulty = 0.5 } = opts
 
   let op: Operation
   let max: 10 | 20
@@ -199,7 +208,7 @@ export function generateQuestion(opts: GenerateOneOptions): Question {
     const range = pick(ranges)
     op = rangeOperation(range)
     max = rangeMax(range)
-    eq = generateEquation(op, max)
+    eq = generateEquation(op, max, difficulty)
   }
 
   // 在与该运算匹配、且用户已选的题型中按权重挑选
@@ -247,6 +256,7 @@ export function generateQuestions(
   settings: PracticeSettings & {
     skillTags?: SkillTag[]
     questionFormats?: QuestionFormat[]
+    adaptiveNumberDifficulty?: number
   },
 ): Question[] {
   const { selectedRanges, selectedPatterns, questionCount } = settings
@@ -265,7 +275,9 @@ export function generateQuestions(
   let lastSig = ''
 
   for (let i = 0; i < questionCount; i++) {
-    const difficulty = questionCount > 1 ? i / (questionCount - 1) : 0
+    const baseDifficulty = settings.adaptiveNumberDifficulty ?? 0.8
+    const progress = questionCount > 1 ? i / (questionCount - 1) : 0
+    const difficulty = Math.min(1, baseDifficulty + progress * 0.2)
     let q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty, skillTags })
 
     // 尝试避免与上一题相同、以及整套重复

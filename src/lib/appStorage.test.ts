@@ -235,6 +235,38 @@ describe('练习结算、奖励与长期错题', () => {
     expect(rewards.newlyUnlocked.map((item) => item.id)).toContain('engine-red-express')
   })
 
+  it('普通练习明显吃力时自动退一级，复习练习不改变难度', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+    storage.profiles[0].currentLevel = 'within10-missing'
+    const adaptiveSettings = {
+      ...DEFAULT_PROFILE_SETTINGS,
+      adaptiveDifficulty: true,
+    }
+
+    const update = applyLearningResult(storage, {
+      profileId: pid,
+      settings: adaptiveSettings,
+      result: result({ firstTry: false, wrongAnswers: [4] }),
+    })
+
+    expect(storage.profiles[0].currentLevel).toBe('within10-steady')
+    expect(update.difficultyChange).toEqual({
+      from: 'within10-missing',
+      to: 'within10-steady',
+    })
+
+    storage.profiles[0].currentLevel = 'within10-missing'
+    const reviewUpdate = applyLearningResult(storage, {
+      profileId: pid,
+      settings: adaptiveSettings,
+      result: result({ firstTry: false, id: 'review-q', wrongAnswers: [4] }),
+      sessionKind: 'review',
+    })
+    expect(storage.profiles[0].currentLevel).toBe('within10-missing')
+    expect(reviewUpdate.difficultyChange).toBeNull()
+  })
+
   it('完成练习会获得路线邮票并累计到站次数', () => {
     const storage = createFreshStorage()
     const pid = storage.profiles[0].id

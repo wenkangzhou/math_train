@@ -15,6 +15,10 @@ interface RewardDrawerProps {
   onSelectHead: (id: string) => void
 }
 
+const JOURNEY_DURATION_SECONDS = 9
+const RETURN_BELL_MS = 8200
+const JOURNEY_STOP_MS = 9300
+
 export function RewardDrawer({
   open,
   reward,
@@ -66,11 +70,11 @@ export function RewardDrawer({
       () => {
         if (soundEnabled) playTrainBell()
       },
-      reduceMotion ? 500 : 10300,
+      reduceMotion ? 500 : RETURN_BELL_MS,
     )
     const stopTimer = window.setTimeout(
       () => setRunning(false),
-      reduceMotion ? 850 : 11200,
+      reduceMotion ? 850 : JOURNEY_STOP_MS,
     )
     return () => {
       window.clearTimeout(returnBell)
@@ -180,7 +184,7 @@ export function RewardDrawer({
                     className="absolute right-3 top-3 z-30 flex items-center gap-1.5 rounded-full bg-coral px-3 py-2 text-xs font-extrabold text-white shadow-md transition disabled:bg-slate-400"
                   >
                     <Play size={14} fill="currentColor" />
-                    {running ? '旅行中…' : '出发去旅行'}
+                    {running ? '长途旅行中…' : '长途出发'}
                   </button>
                   <TrainJourneyScene
                     key={`${focusedTrain.id}-${runCycle}`}
@@ -191,7 +195,7 @@ export function RewardDrawer({
                   />
                 </div>
                 <p className="mt-2 text-center text-xs font-extrabold text-white/90">
-                  🚉 {focusedRoute.destination} → 🐄 经过牧场 → 🚉 回到原站
+                  🚉 出站 → 🐄 牧场 → 🌉 河桥 → 🏘️ 小镇 → 🚉 回原站
                 </p>
 
                 {nextReward ? (
@@ -372,7 +376,7 @@ export function RewardDrawer({
                       className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-coral px-4 text-sm font-extrabold text-white shadow-soft disabled:bg-slate-300"
                     >
                       <Play size={18} fill="currentColor" />
-                      {running ? '旅行中…' : '让它跑一趟'}
+                      {running ? '长途旅行中…' : '让它跑一趟'}
                     </button>
                     {focusedUnlocked ? (
                       focusedTrain.id === selectedHead.id ? (
@@ -430,23 +434,23 @@ function TrainJourneyScene({
   reduceMotion: boolean
   compact?: boolean
 }) {
-  // The scenery lives on a strip of three identical tiles (w-[300%]). One run
-  // scrolls it left by two full tiles (-66.6667% of the strip) over ~11s, so
-  // the train covers real distance — two tiles of pasture glide past — and the
-  // third, identical station lands back under it. Because every tile is the
-  // same, ending on any tile boundary means "起点就是终点": the loop is
-  // seamless. The train itself never moves or flips; the world moves past it,
-  // which is what makes it read naturally.
+  // Five full-width scenes form one long route. The first and last tiles are
+  // the same station, so resetting to the start after arrival is invisible.
+  // The train never flips; four screen widths of scenery move past it.
   const scrollAnimation = reduceMotion
     ? { x: ['0%', '-4%', '0%'] }
-    : { x: ['0%', '-66.6667%'] }
+    : { x: ['0%', '-5%', '-75%', '-80%'] }
   // Resetting to rest uses duration 0: because the tiles are identical, the
   // jump from a tile boundary back to 0% is visually indistinguishable, so
   // there is no ugly rewind when the run ends.
   const scrollTransition = running
     ? reduceMotion
       ? { duration: 0.75, ease: 'easeInOut' as const }
-      : { duration: 11, ease: 'easeInOut' as const }
+      : {
+          duration: JOURNEY_DURATION_SECONDS,
+          times: [0, 0.08, 0.92, 1],
+          ease: 'linear' as const,
+        }
     : { duration: 0 }
 
   return (
@@ -461,17 +465,39 @@ function TrainJourneyScene({
       <div className="absolute inset-x-0 bottom-[30px] z-[6] h-[3px] bg-slate-500/70" />
       <div className="absolute inset-x-0 bottom-[24px] z-[6] h-[3px] bg-slate-400/60" />
 
-      {/* The scrolling world: two identical tiles laid side by side */}
+      {/* Four screen widths of distinct scenery, ending at the origin station. */}
       <motion.div
-        className="absolute inset-y-0 left-0 flex w-[300%]"
+        className="absolute inset-y-0 left-0 flex w-[500%]"
         initial={false}
         animate={scrollAnimation}
         transition={scrollTransition}
       >
-        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile scene="station" route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile scene="pasture" route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile scene="river" route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile scene="town" route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile scene="station" route={route} running={running} reduceMotion={reduceMotion} />
       </motion.div>
+
+      {running && !reduceMotion && (
+        <div className="absolute inset-0 z-[8] overflow-hidden">
+          {[0, 1, 2].map((line) => (
+            <motion.span
+              key={line}
+              className="absolute h-0.5 w-20 rounded-full bg-white/60"
+              style={{ top: `${34 + line * 16}%` }}
+              initial={{ x: 520, opacity: 0 }}
+              animate={{ x: -120, opacity: [0, 0.85, 0] }}
+              transition={{
+                duration: 0.65,
+                repeat: Infinity,
+                delay: line * 0.18,
+                ease: 'linear',
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Station bell, parked beside the train — rings on departure / arrival */}
       <motion.span
@@ -488,7 +514,7 @@ function TrainJourneyScene({
         className="absolute bottom-[20px] left-[8%] z-20 h-[72px] w-[102px] origin-bottom"
         initial={false}
         animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
-        transition={{ duration: 0.5, repeat: running && !reduceMotion ? Infinity : 0, ease: 'easeInOut' }}
+        transition={{ duration: 0.32, repeat: running && !reduceMotion ? Infinity : 0, ease: 'easeInOut' }}
       >
         <TrainEngineArt item={item} compact running={running && !reduceMotion} />
       </motion.div>
@@ -497,20 +523,21 @@ function TrainJourneyScene({
   )
 }
 
-// One tile of scenery, sized to exactly fill the visible area. Two of these
-// laid side by side make the seamless loop. Positions use percentages so the
-// layout is identical in both copies.
+type JourneyScene = 'station' | 'pasture' | 'river' | 'town'
+
 function SceneryTile({
+  scene,
   route,
   running,
   reduceMotion,
 }: {
+  scene: JourneyScene
   route: TrainRoute
   running: boolean
   reduceMotion: boolean
 }) {
   return (
-    <div className="relative h-full w-1/3 shrink-0">
+    <div className="relative h-full w-1/5 shrink-0">
       {/* Railroad ties */}
       {SLEEPER_OFFSETS.map((offset) => (
         <span
@@ -520,41 +547,65 @@ function SceneryTile({
         />
       ))}
 
-      {/* Station platform + destination sign (origin = destination) */}
-      <div className="absolute bottom-[36px] left-[5%] z-[15] flex flex-col items-center">
-        <span className="flex max-w-[110px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[11px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
-          <MapPin size={10} className="shrink-0" /> {route.destination}
-        </span>
-        <span className="h-8 w-1.5 bg-slate-500" />
-      </div>
+      {scene === 'station' && (
+        <>
+          <div className="absolute bottom-[36px] left-[5%] z-[15] flex flex-col items-center">
+            <span className="flex max-w-[110px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[11px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
+              <MapPin size={10} className="shrink-0" /> {route.destination}
+            </span>
+            <span className="h-8 w-1.5 bg-slate-500" />
+          </div>
+          <span className="absolute bottom-[35px] left-[70%] z-10 text-3xl">🌳</span>
+          <span className="absolute bottom-[32px] left-[88%] z-10 text-xl">🌼</span>
+        </>
+      )}
 
-      {/* Pasture: fence with grazing animals */}
-      <div className="absolute bottom-[36px] left-[42%] z-10 flex items-end gap-1 rounded-2xl bg-white/45 px-2 py-1 shadow-sm">
-        <motion.span
-          className="text-2xl"
-          animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
-          transition={{ duration: 0.8, repeat: running ? Infinity : 0 }}
-        >
-          🐄
-        </motion.span>
-        <motion.span
-          className="text-xl"
-          animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
-          transition={{ duration: 0.7, repeat: running ? Infinity : 0, delay: 0.18 }}
-        >
-          🐑
-        </motion.span>
-        <span className="absolute -bottom-1 left-0 right-0 flex justify-around">
-          <i className="h-2 w-0.5 bg-amber-700/70" />
-          <i className="h-2 w-0.5 bg-amber-700/70" />
-          <i className="h-2 w-0.5 bg-amber-700/70" />
-          <i className="h-2 w-0.5 bg-amber-700/70" />
-        </span>
-      </div>
+      {scene === 'pasture' && (
+        <>
+          <div className="absolute bottom-[36px] left-[28%] z-10 flex items-end gap-2 rounded-2xl bg-white/45 px-3 py-1 shadow-sm">
+            <motion.span
+              className="text-3xl"
+              animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+              transition={{ duration: 0.55, repeat: running ? Infinity : 0 }}
+            >
+              🐄
+            </motion.span>
+            <motion.span
+              className="text-2xl"
+              animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+              transition={{ duration: 0.5, repeat: running ? Infinity : 0, delay: 0.12 }}
+            >
+              🐑
+            </motion.span>
+          </div>
+          <span className="absolute bottom-[40px] left-[72%] z-10 text-3xl">🌳</span>
+          <span className="absolute bottom-[34px] left-[88%] z-10 text-xl">🌻</span>
+        </>
+      )}
 
-      {/* Roadside greenery */}
-      <span className="absolute bottom-[40px] left-[68%] z-10 text-3xl">🌳</span>
-      <span className="absolute bottom-[34px] left-[86%] z-10 text-xl">🌼</span>
+      {scene === 'river' && (
+        <>
+          <span className="absolute bottom-[8px] left-[8%] h-9 w-[84%] rounded-[50%] bg-sky-300/70" />
+          <span className="absolute bottom-[38px] left-[30%] z-10 text-4xl drop-shadow-sm">🌉</span>
+          <span className="absolute bottom-[40px] left-[72%] z-10 text-3xl">🌲</span>
+          <motion.span
+            className="absolute bottom-[10px] left-[68%] text-lg"
+            animate={running && !reduceMotion ? { x: [0, 12, 0] } : { x: 0 }}
+            transition={{ duration: 0.8, repeat: running ? Infinity : 0 }}
+          >
+            🦆
+          </motion.span>
+        </>
+      )}
+
+      {scene === 'town' && (
+        <>
+          <span className="absolute bottom-[36px] left-[18%] z-10 text-4xl">🏠</span>
+          <span className="absolute bottom-[36px] left-[42%] z-10 text-4xl">🏡</span>
+          <span className="absolute bottom-[38px] left-[70%] z-10 text-3xl">🌳</span>
+          <span className="absolute bottom-[34px] left-[88%] z-10 text-2xl">🚦</span>
+        </>
+      )}
     </div>
   )
 }

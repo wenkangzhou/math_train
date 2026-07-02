@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Question } from '@/types/math'
-import { numberToZh, questionToSpeech } from './speech'
+import { numberToZh, primeSpeech, questionToSpeech } from './speech'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const baseQuestion: Question = {
   id: 'speech-q',
@@ -36,5 +40,35 @@ describe('题目朗读文本', () => {
         result: 5,
       }),
     ).toBe('三加几等于五？')
+  })
+
+  it('在开始按钮的点击手势中预热系统语音', () => {
+    const resume = vi.fn()
+    const speak = vi.fn()
+    vi.stubGlobal('window', {
+      speechSynthesis: {
+        resume,
+        speak,
+        cancel: vi.fn(),
+        getVoices: () => [],
+      },
+    })
+    vi.stubGlobal(
+      'SpeechSynthesisUtterance',
+      class {
+        lang = ''
+        rate = 1
+        volume = 1
+      },
+    )
+
+    expect(primeSpeech()).toBe(true)
+    expect(resume).toHaveBeenCalledOnce()
+    expect(speak).toHaveBeenCalledOnce()
+    expect(speak.mock.calls[0][0]).toMatchObject({
+      lang: 'zh-CN',
+      rate: 10,
+      volume: 0,
+    })
   })
 })

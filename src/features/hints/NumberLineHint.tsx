@@ -52,72 +52,75 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
       {/* 数轴主体（窄屏可横向滚动） */}
       <div className="overflow-x-auto pb-1">
         <div
-          className="relative mx-auto mt-5 px-6 ipad-land:mt-4"
-          style={{ minWidth: max > 10 ? 560 : 320, height: 58 }}
+          className="mx-auto mt-5 px-6 ipad-land:mt-4"
+          style={{ minWidth: max > 10 ? 560 : 320 }}
         >
-          {/* 轨道线 */}
-          <div className="absolute left-0 right-0 top-9 h-1.5 rounded-full bg-sky-soft" />
+          {/* 内层轨道让 0 和最大值两端各留 24px，避免标签与火车被裁掉。 */}
+          <div className="relative h-[58px]">
+            {/* 轨道线 */}
+            <div className="absolute left-0 right-0 top-9 h-1.5 rounded-full bg-sky-soft" />
 
-          {/* 走过的轨迹高亮 */}
-          <motion.div
-            className="absolute top-9 h-1.5 rounded-full bg-sky"
-            initial={false}
-            animate={{
-              left: `${pct(Math.min(start, current))}%`,
-              width: `${Math.abs(pct(current) - pct(start))}%`,
-            }}
-            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          />
+            {/* 走过的轨迹高亮 */}
+            <motion.div
+              className="absolute top-9 h-1.5 rounded-full bg-sky"
+              initial={false}
+              animate={{
+                left: `${pct(Math.min(start, current))}%`,
+                width: `${Math.abs(pct(current) - pct(start))}%`,
+              }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            />
 
-          {/* 刻度 */}
-          {ticks.map((n) => {
-            const active = n === current
-            const isAnchor = n === start || n === end
-            return (
-              <div
-                key={n}
-                className="absolute top-6 flex -translate-x-1/2 flex-col items-center"
-                style={{ left: `${pct(n)}%` }}
-              >
-                <span
-                  className={[
-                    'h-3 w-3 rounded-full border-2',
-                    active
-                      ? 'border-sky bg-sky'
-                      : isAnchor
-                        ? 'border-coral bg-coral'
-                        : 'border-slate-300 bg-white',
-                  ].join(' ')}
-                />
-                <span
-                  className={[
-                    'mt-1 font-digit text-sm',
-                    active
-                      ? 'font-bold text-sky-deep'
-                      : isAnchor
-                        ? 'font-bold text-coral'
-                        : 'text-slate-400',
-                  ].join(' ')}
+            {/* 刻度 */}
+            {ticks.map((n) => {
+              const active = n === current
+              const isAnchor = n === start || n === end
+              return (
+                <div
+                  key={n}
+                  className="absolute top-6 flex -translate-x-1/2 flex-col items-center"
+                  style={{ left: `${pct(n)}%` }}
                 >
-                  {n}
-                </span>
-              </div>
-            )
-          })}
+                  <span
+                    className={[
+                      'h-3 w-3 rounded-full border-2',
+                      active
+                        ? 'border-sky bg-sky'
+                        : isAnchor
+                          ? 'border-coral bg-coral'
+                          : 'border-slate-300 bg-white',
+                    ].join(' ')}
+                  />
+                  <span
+                    className={[
+                      'mt-1 font-digit text-sm',
+                      active
+                        ? 'font-bold text-sky-deep'
+                        : isAnchor
+                          ? 'font-bold text-coral'
+                          : 'text-slate-400',
+                    ].join(' ')}
+                  >
+                    {n}
+                  </span>
+                </div>
+              )
+            })}
 
-          {/* 小火车标记 */}
-          <motion.div
-            className="absolute -top-1 -translate-x-1/2 text-2xl"
-            initial={false}
-            animate={{ left: `${pct(current)}%`, y: reduce ? 0 : [0, -6, 0] }}
-            transition={{
-              left: { type: 'spring', stiffness: 260, damping: 22 },
-              y: { duration: 0.4 },
-            }}
-            aria-hidden="true"
-          >
-            🚂
-          </motion.div>
+            {/* 小火车标记 */}
+            <motion.div
+              className="absolute -top-1 -translate-x-1/2 text-2xl"
+              initial={false}
+              animate={{ left: `${pct(current)}%`, y: reduce ? 0 : [0, -6, 0] }}
+              transition={{
+                left: { type: 'spring', stiffness: 260, damping: 22 },
+                y: { duration: 0.4 },
+              }}
+              aria-hidden="true"
+            >
+              🚂
+            </motion.div>
+          </div>
         </div>
       </div>
 

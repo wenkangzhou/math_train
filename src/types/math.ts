@@ -107,6 +107,8 @@ export interface AnswerRecord {
   durationMs: number
   // 本题曾输入过的错误答案，用于长期错题本分析。
   wrongAnswers?: number[]
+  // 本题权重星数（按难度加权），仅在 isCorrect 时有效
+  questionStarWeight?: number
 }
 
 export interface PracticeSession {

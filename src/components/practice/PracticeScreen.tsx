@@ -9,6 +9,7 @@ import type {
 } from '@/types/math'
 import type { SpeechRate } from '@/types/profile'
 import type { RewardState } from '@/types/rewards'
+import { getQuestionWeight, sumWeightedStars } from '@/lib/starWeights'
 import { PracticeHeader } from './PracticeHeader'
 import { QuestionCard } from './QuestionCard'
 import { PictureQuestion } from '@/features/questions/PictureQuestion'
@@ -120,6 +121,7 @@ export function PracticeScreen({
   const finish = useCallback(() => {
     const records = recordsRef.current
     const correctCount = records.filter((r) => r.isCorrect).length
+    const weightedStars = sumWeightedStars(records)
     const wrongIds = new Set(
       records.filter((r) => !r.isCorrect).map((r) => r.questionId),
     )
@@ -129,7 +131,7 @@ export function PracticeScreen({
       questions,
       records,
       durationMs: Math.max(0, Date.now() - sessionStartTimeRef.current),
-      stars: correctCount,
+      stars: weightedStars,
       correctCount,
       total,
       accuracy: total > 0 ? correctCount / total : 0,
@@ -163,6 +165,7 @@ export function PracticeScreen({
       playCorrect()
       if (settings.autoReadFeedback) speakWithFallback(message)
 
+      const earnedStars = getQuestionWeight(question)
       recordsRef.current.push({
         questionId: question.id,
         answer: entered,
@@ -171,10 +174,11 @@ export function PracticeScreen({
         usedHint,
         durationMs: Date.now() - startTimeRef.current,
         wrongAnswers: [...wrongAnswersRef.current],
+        questionStarWeight: earnedStars,
       })
 
       if (firstTry) {
-        setStars((s) => s + 1)
+        setStars((s) => s + earnedStars)
         setStreak((s) => {
           const n = s + 1
           bestRef.current = Math.max(bestRef.current, n)

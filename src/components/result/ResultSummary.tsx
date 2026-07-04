@@ -25,6 +25,8 @@ function StatPill({
 
 export function ResultSummary({ result }: ResultSummaryProps) {
   const accuracyPct = Math.round(result.accuracy * 100)
+  const baseStars = result.correctCount
+  const bonusStars = result.stars - baseStars
 
   return (
     <details className="group w-full rounded-[24px] bg-sky-soft/20 ring-1 ring-sky/10">
@@ -50,6 +52,11 @@ export function ResultSummary({ result }: ResultSummaryProps) {
             <span className="text-xl font-extrabold">+{result.stars - 10}</span>
           )}
         </div>
+        {bonusStars > 0 && (
+          <p className="text-center text-sm font-bold text-amber-600">
+            ⭐ 基础得分 {baseStars} + 难度加成 {bonusStars} = 共 {result.stars} 颗星星
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatPill

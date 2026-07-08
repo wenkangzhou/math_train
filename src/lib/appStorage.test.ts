@@ -158,7 +158,7 @@ describe('练习结算、奖励与长期错题', () => {
         wrongAnswers: params.wrongAnswers ?? [],
       }],
       durationMs: 1500,
-      stars: params.firstTry ? 1 : 0,
+      stars: 1,
       correctCount: params.firstTry ? 1 : 0,
       total: 1,
       accuracy: params.firstTry ? 1 : 0,
@@ -223,7 +223,7 @@ describe('练习结算、奖励与长期错题', () => {
   it('累计星星跨过阈值时返回新解锁车厢', () => {
     const storage = createFreshStorage()
     const pid = storage.profiles[0].id
-    storage.rewardsByProfile[pid].stars = 119
+    storage.rewardsByProfile[pid].stars = 29
 
     const rewards = applyLearningResult(storage, {
       profileId: pid,
@@ -231,7 +231,7 @@ describe('练习结算、奖励与长期错题', () => {
       result: result({ firstTry: true }),
     })
 
-    expect(storage.rewardsByProfile[pid].stars).toBe(120)
+    expect(storage.rewardsByProfile[pid].stars).toBe(30)
     expect(rewards.newlyUnlocked.map((item) => item.id)).toContain('engine-red-express')
   })
 

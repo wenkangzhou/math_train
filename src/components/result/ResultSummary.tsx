@@ -25,15 +25,15 @@ function StatPill({
 
 export function ResultSummary({ result }: ResultSummaryProps) {
   const accuracyPct = Math.round(result.accuracy * 100)
-  const baseStars = result.correctCount
-  const bonusStars = result.stars - baseStars
+  const baseStars = Math.min(result.total, result.stars)
+  const bonusStars = Math.max(0, result.stars - baseStars)
 
   return (
     <details className="group w-full rounded-[24px] bg-sky-soft/20 ring-1 ring-sky/10">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-base font-extrabold text-sky-deep focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/40 [&::-webkit-details-marker]:hidden">
         <span>看看这趟的成绩</span>
         <span className="rounded-full bg-white/80 px-3 py-1 text-sm text-slate-600">
-          答对 {result.correctCount}/{result.total}
+          首次答对 {result.correctCount}/{result.total}
         </span>
       </summary>
       <div className="space-y-4 border-t border-sky-100 px-4 pb-4 pt-3">
@@ -54,13 +54,13 @@ export function ResultSummary({ result }: ResultSummaryProps) {
         </div>
         {bonusStars > 0 && (
           <p className="text-center text-sm font-bold text-amber-600">
-            ⭐ 基础得分 {baseStars} + 难度加成 {bonusStars} = 共 {result.stars} 颗星星
+            ⭐ 完成奖励 {baseStars} + 难度加成 {bonusStars} = 共 {result.stars} 颗星星
           </p>
         )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatPill
-            label="答对题数"
+            label="首次答对"
             value={`${result.correctCount}/${result.total}`}
             accent="text-grass"
           />

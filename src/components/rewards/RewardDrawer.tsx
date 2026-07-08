@@ -4,6 +4,7 @@ import { BellRing, CheckCircle2, Lock, MapPin, Play, Star, X } from 'lucide-reac
 import type { Carriage, RewardState, TrainRoute } from '@/types/rewards'
 import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
 import { TRAIN_ROUTES, getTrainRoute, routeStampId } from '@/lib/trainRoutes'
+import { estimateTripsRemaining } from '@/lib/starWeights'
 import { playTrainBell } from '@/lib/sound'
 import { TrainEngineArt } from './TrainEngineArt'
 
@@ -11,6 +12,7 @@ interface RewardDrawerProps {
   open: boolean
   reward: RewardState
   soundEnabled: boolean
+  estimatedStarsPerTrip: number
   onClose: () => void
   onSelectHead: (id: string) => void
 }
@@ -23,6 +25,7 @@ export function RewardDrawer({
   open,
   reward,
   soundEnabled,
+  estimatedStarsPerTrip,
   onClose,
   onSelectHead,
 }: RewardDrawerProps) {
@@ -102,6 +105,12 @@ export function RewardDrawer({
           (nextReward.unlockAtStars - currentMilestone)) * 100,
       )
     : 100
+  const starsRemaining = nextReward
+    ? Math.max(0, nextReward.unlockAtStars - reward.stars)
+    : 0
+  const estimatedTripsRemaining = nextReward
+    ? estimateTripsRemaining(starsRemaining, estimatedStarsPerTrip)
+    : 0
 
   const runFocusedTrain = () => {
     if (running) return
@@ -202,7 +211,9 @@ export function RewardDrawer({
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs font-bold text-white/85">
                       <span>下一个：{nextReward.name} · {nextReward.functionLabel}</span>
-                      <span>还差 {nextReward.unlockAtStars - reward.stars} 颗</span>
+                      <span className="text-right">
+                        还差 {starsRemaining} 颗 · 约再跑 {estimatedTripsRemaining} 趟
+                      </span>
                     </div>
                     <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-sky-950/15">
                       <div

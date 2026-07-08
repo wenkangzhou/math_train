@@ -15,13 +15,13 @@ describe('长期机车收藏目录', () => {
     ).toBe(true)
   })
 
-  it('解锁间距足够长且逐步增加', () => {
+  it('前期快速获得伙伴，后期解锁间距逐步增加', () => {
     const thresholds = CARRIAGE_CATALOG.map((item) => item.unlockAtStars)
     const gaps = thresholds.slice(1).map((value, index) => value - thresholds[index])
 
-    expect(thresholds[0]).toBe(0)
-    expect(thresholds[thresholds.length - 1]).toBe(5800)
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(120)
+    expect(thresholds.slice(0, 4)).toEqual([0, 30, 80, 150])
+    expect(thresholds[thresholds.length - 1]).toBe(2520)
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(30)
     expect(gaps.every((gap, index) => index === 0 || gap >= gaps[index - 1])).toBe(true)
   })
 })

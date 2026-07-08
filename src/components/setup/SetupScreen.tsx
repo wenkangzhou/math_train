@@ -267,6 +267,18 @@ export function SetupScreen({
   const todayQuestions = todayEntries.reduce((sum, entry) => sum + entry.total, 0)
   const todayTrips = todayEntries.length
   const pendingWrongCount = wrongRecords.filter((item) => isReviewDue(item)).length
+  const recentRewardTrips = practiceHistory
+    .filter((item) => item.earnedStars > 0)
+    .slice(0, 5)
+  const estimatedStarsPerTrip = recentRewardTrips.length > 0
+    ? Math.max(
+        1,
+        Math.round(
+          recentRewardTrips.reduce((sum, item) => sum + item.earnedStars, 0) /
+            recentRewardTrips.length,
+        ),
+      )
+    : count
   const enabledHelperCount = [
     autoShowVisualHint,
     showHintAfterWrong,
@@ -644,6 +656,7 @@ export function SetupScreen({
         open={rewardOpen}
         reward={reward}
         soundEnabled={soundEnabled}
+        estimatedStarsPerTrip={estimatedStarsPerTrip}
         onClose={() => setRewardOpen(false)}
         onSelectHead={onSelectHead}
       />

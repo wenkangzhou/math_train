@@ -9,7 +9,7 @@ import type {
 } from '@/types/math'
 import type { SpeechRate } from '@/types/profile'
 import type { RewardState } from '@/types/rewards'
-import { getQuestionWeight, sumWeightedStars } from '@/lib/starWeights'
+import { getEarnedStars, sumWeightedStars } from '@/lib/starWeights'
 import { PracticeHeader } from './PracticeHeader'
 import { QuestionCard } from './QuestionCard'
 import { PictureQuestion } from '@/features/questions/PictureQuestion'
@@ -45,7 +45,7 @@ interface PracticeScreenProps {
   onExit: () => void
 }
 
-const CORRECT_MSGS = ['答对啦！', '太棒了！', '你真厉害！', '又得到一颗星！', '算得真快！']
+const CORRECT_MSGS = ['答对啦！', '太棒了！', '你真厉害！', '算得真快！']
 const WRONG_MSGS = [
   '差一点，再想一想。',
   '没关系，我们再数一次。',
@@ -158,14 +158,17 @@ export function PracticeScreen({
 
     if (correct) {
       const firstTry = attempts === 0
-      const message = pick(CORRECT_MSGS)
+      const earnedStars = getEarnedStars(question, firstTry)
+      const praise = firstTry ? pick(CORRECT_MSGS) : '坚持做对啦！'
+      const message = `${praise} +${earnedStars} ⭐`
       setLocked(true)
       setFeedback('correct')
       setFeedbackMsg(message)
       playCorrect()
-      if (settings.autoReadFeedback) speakWithFallback(message)
+      if (settings.autoReadFeedback) {
+        speakWithFallback(`${praise}获得 ${earnedStars} 颗星！`)
+      }
 
-      const earnedStars = getQuestionWeight(question)
       recordsRef.current.push({
         questionId: question.id,
         answer: entered,
@@ -177,8 +180,8 @@ export function PracticeScreen({
         questionStarWeight: earnedStars,
       })
 
+      setStars((s) => s + earnedStars)
       if (firstTry) {
-        setStars((s) => s + earnedStars)
         setStreak((s) => {
           const n = s + 1
           bestRef.current = Math.max(bestRef.current, n)

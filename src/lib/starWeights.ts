@@ -35,15 +35,28 @@ export function getQuestionWeight(q: Question): number {
 }
 
 /**
- * 从答对记录中按权重累加星星总数
+ * 本题实际获得的星星：首次答对拿完整难度星，重试后做对也保留 1 颗坚持星。
+ */
+export function getEarnedStars(q: Question, firstTry: boolean): number {
+  return firstTry ? getQuestionWeight(q) : 1
+}
+
+export function estimateTripsRemaining(
+  starsRemaining: number,
+  averageStarsPerTrip: number,
+): number {
+  if (starsRemaining <= 0) return 0
+  return Math.ceil(starsRemaining / Math.max(1, averageStarsPerTrip))
+}
+
+/**
+ * 从答题记录中累加每题实际获得的星星
  */
 export function sumWeightedStars(
-  records: { isCorrect: boolean; questionStarWeight?: number }[],
+  records: { questionStarWeight?: number }[],
 ): number {
-  return records.reduce((sum, r) => {
-    if (r.isCorrect && r.questionStarWeight != null) {
-      return sum + r.questionStarWeight
-    }
-    return sum
-  }, 0)
+  return records.reduce(
+    (sum, record) => sum + Math.max(0, record.questionStarWeight ?? 0),
+    0,
+  )
 }

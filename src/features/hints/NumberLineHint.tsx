@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Question } from '@/types/math'
+import { KidSteps } from '@/components/common/KidSteps'
+import { createNumberLinePlan, numberLineCurrentValue } from '@/lib/numberLinePlan'
 
 interface NumberLineHintProps {
   question: Question
@@ -12,10 +14,8 @@ interface NumberLineHintProps {
 export function NumberLineHint({ question }: NumberLineHintProps) {
   const reduce = useReducedMotion()
   const max = question.range // 10 | 20
-  const isAdd = question.operation === 'addition'
-  const start = question.fullLeft
-  const totalSteps = question.fullRight
-  const end = question.fullResult
+  const plan = useMemo(() => createNumberLinePlan(question), [question])
+  const { start, end, steps: totalSteps, direction } = plan
 
   // 当前已走的步数（0..totalSteps）
   const [step, setStep] = useState(0)
@@ -23,7 +23,7 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
     setStep(0)
   }, [question.id])
 
-  const current = isAdd ? start + step : start - step
+  const current = numberLineCurrentValue(plan, step)
   const reachedEnd = step >= totalSteps
 
   const ticks = useMemo(
@@ -34,21 +34,15 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
   const pct = (v: number) => (v / max) * 100
 
   const caption = useMemo(() => {
-    if (!reachedEnd) {
-      return isAdd
-        ? `从 ${start} 出发，向右一步一步走。`
-        : `从 ${start} 出发，向左一步一步走。`
-    }
-    if (question.pattern.includes('blank')) {
-      return `小火车从 ${start} 走到 ${end}，一共走了 ${totalSteps} 步！`
-    }
-    return isAdd
-      ? `${start} 向右走 ${totalSteps} 步，停在 ${end}。`
-      : `${start} 向左走 ${totalSteps} 步，停在 ${end}。`
-  }, [reachedEnd, isAdd, start, end, totalSteps, question.pattern])
+    if (reachedEnd) return plan.done
+    if (step === 0) return plan.intro
+    return `现在停在 ${current}，已经走了 ${step} 步。`
+  }, [current, plan.done, plan.intro, reachedEnd, step])
 
   return (
     <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
+      <KidSteps steps={plan.stepLabels} />
+
       {/* 数轴主体（窄屏可横向滚动） */}
       <div className="overflow-x-auto pb-1">
         <div
@@ -127,6 +121,10 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
       <p className="mt-1 text-center text-sm font-bold text-slate-600 sm:text-base ipad-land:text-sm">
         {caption}
       </p>
+      <p className="mt-0.5 text-center text-xs font-semibold text-slate-400">
+        已走 {step}/{totalSteps} 步
+        {plan.answerKind === 'steps' && reachedEnd ? '，走的步数就是答案' : ''}
+      </p>
 
       {/* 控制按钮 */}
       <div className="mt-2 flex items-center justify-center gap-2">
@@ -136,7 +134,7 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
           disabled={reachedEnd}
           className="rounded-full bg-sky px-5 py-2 text-sm font-bold text-white shadow-soft transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50 sm:text-base ipad-land:text-sm"
         >
-          {isAdd ? '向右一步 →' : '← 向左一步'}
+          {direction === 'right' ? '向右一步 →' : '← 向左一步'}
         </button>
         <button
           type="button"

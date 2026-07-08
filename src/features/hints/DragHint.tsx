@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { Question } from '@/types/math'
 import { themeEmoji } from '@/lib/visualTheme'
+import { KidSteps } from '@/components/common/KidSteps'
 
 interface DragHintProps {
   question: Question
@@ -48,6 +49,22 @@ function buildScenario(q: Question): Scenario {
     default:
       return blank
   }
+}
+
+function dragSteps(q: Question, mode: Mode): string[] {
+  if (mode === 'takeaway') {
+    return q.pattern === 'a-minus-blank-equals-c'
+      ? ['拖走到剩下', '数拖走几个', '按拿走数']
+      : ['拖走开走的', '数这里剩下', '按剩下数']
+  }
+  if (mode === 'fill') {
+    return q.pattern === 'blank-plus-b-equals-c'
+      ? ['先看总数', '补满空位', '按原来数']
+      : ['补满空位', '数补了几个', '按还差数']
+  }
+  return q.pattern === 'blank-minus-b-equals-c'
+    ? ['把两边合上', '数一共有', '按原来数']
+    : ['拖到一起', '数一共有', '按总数']
 }
 
 // 单个可拖动物品：拖入目标区或点按即放置；未命中自动弹回。
@@ -210,6 +227,7 @@ export function DragHint({ question }: DragHintProps) {
   if (sc.mode === 'takeaway') {
     return (
       <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
+        <KidSteps steps={dragSteps(question, sc.mode)} />
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
           {/* 这里（可拖走） */}
           <div>
@@ -237,6 +255,9 @@ export function DragHint({ question }: DragHintProps) {
           </div>
         </div>
         <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">{caption}</p>
+        <p className="mt-1 text-center text-xs font-semibold text-slate-400">
+          拖不动也没关系，点一下物品也能放过去。
+        </p>
       </div>
     )
   }
@@ -244,6 +265,7 @@ export function DragHint({ question }: DragHintProps) {
   // combine / fill 共享：上方目标区 + 下方来源区
   return (
     <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
+      <KidSteps steps={dragSteps(question, sc.mode)} />
       {/* 目标区 */}
       <p className="mb-1 text-center text-sm font-semibold text-grass">
         {sc.mode === 'fill' ? `目标 ${sc.total} 个` : '合起来'}
@@ -283,6 +305,9 @@ export function DragHint({ question }: DragHintProps) {
       </div>
 
       <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">{caption}</p>
+      <p className="mt-1 text-center text-xs font-semibold text-slate-400">
+        拖不动也没关系，点一下物品也能放上去。
+      </p>
     </div>
   )
 }

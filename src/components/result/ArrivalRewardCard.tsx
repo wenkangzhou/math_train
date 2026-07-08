@@ -7,9 +7,32 @@ import { TrainEngineArt } from '@/components/rewards/TrainEngineArt'
 
 interface ArrivalRewardCardProps {
   reward: RouteReward
+  earnedStars: number
 }
 
-export function ArrivalRewardCard({ reward }: ArrivalRewardCardProps) {
+function TripRewardPill({
+  emoji,
+  label,
+  value,
+}: {
+  emoji: string
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-2xl bg-white/85 px-2.5 py-2 text-center shadow-sm ring-1 ring-sky-100">
+      <span className="block text-2xl" aria-hidden="true">{emoji}</span>
+      <span className="mt-0.5 block text-[11px] font-bold text-slate-400">
+        {label}
+      </span>
+      <span className="block text-sm font-extrabold text-slate-700">
+        {value}
+      </span>
+    </div>
+  )
+}
+
+export function ArrivalRewardCard({ reward, earnedStars }: ArrivalRewardCardProps) {
   const reduceMotion = useReducedMotion()
   const [arriving, setArriving] = useState(true)
   const train = getCarriage(reward.trainId) ?? CARRIAGE_CATALOG[0]
@@ -59,7 +82,7 @@ export function ArrivalRewardCard({ reward }: ArrivalRewardCardProps) {
         </motion.div>
       </div>
 
-      <div className="flex items-center gap-3 border-t border-sky-100 bg-white/75 p-4">
+      <div className="flex items-center gap-3 border-t border-sky-100 bg-white/75 p-4 pb-3">
         <motion.span
           initial={reduceMotion ? false : { rotate: -18, scale: 0 }}
           animate={{ rotate: 0, scale: 1 }}
@@ -79,6 +102,29 @@ export function ArrivalRewardCard({ reward }: ArrivalRewardCardProps) {
           <p className="mt-0.5 text-xs font-semibold text-slate-500">
             {reward.cargoEmoji} {reward.missionTitle}
           </p>
+        </div>
+      </div>
+
+      <div className="border-t border-sky-100 bg-white/60 px-4 pb-4 pt-3">
+        <p className="mb-2 text-center text-xs font-extrabold text-sky-deep">
+          🎁 本趟小收获 · 每跑完一趟都会多一枚到站章
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <TripRewardPill
+            emoji={reward.stampEmoji}
+            label={reward.isNewStamp ? '新邮票' : '到站章'}
+            value="+1"
+          />
+          <TripRewardPill
+            emoji="🚉"
+            label="这条路线"
+            value={`第 ${reward.tripCount} 次`}
+          />
+          <TripRewardPill
+            emoji="⭐"
+            label="星星"
+            value={`+${earnedStars}`}
+          />
         </div>
       </div>
     </motion.section>

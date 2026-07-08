@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import type { Question } from '@/types/math'
 import { themeEmoji } from '@/lib/visualTheme'
+import { KidSteps } from '@/components/common/KidSteps'
 
 type ItemState = 'solid' | 'faded' | 'ghost' | 'new'
 
@@ -94,6 +95,25 @@ const Divider = ({ symbol }: { symbol: string }) => (
     {symbol}
   </span>
 )
+
+function visualSteps(question: Question): string[] {
+  switch (question.pattern) {
+    case 'a-plus-b-equals-blank':
+      return ['先数左边', '再数右边', '按总数']
+    case 'a-minus-b-equals-blank':
+      return ['看一共有', '划掉开走的', '按剩下']
+    case 'a-plus-blank-equals-c':
+      return ['看已有', '数空位', '按还差几个']
+    case 'blank-plus-b-equals-c':
+      return ['看总数', '圈后来数', '按原来几个']
+    case 'a-minus-blank-equals-c':
+      return ['看原来数', '比剩下多多少', '按拿走几个']
+    case 'blank-minus-b-equals-c':
+      return ['看剩下', '加回开走的', '按原来几个']
+    default:
+      return ['看图', '数一数', '按答案']
+  }
+}
 
 export function VisualHint({ question, level = 1 }: VisualHintProps) {
   const emoji = themeEmoji(question.visualTheme)
@@ -199,9 +219,13 @@ export function VisualHint({ question, level = 1 }: VisualHintProps) {
 
   return (
     <div className="rounded-card bg-white/80 p-4 shadow-soft ipad-land:p-3">
+      <KidSteps steps={visualSteps(question)} />
       <div className="min-h-[72px] py-1 ipad-land:min-h-[60px]">{body}</div>
       <p className="mt-2 text-center text-base font-medium text-slate-600 sm:text-lg ipad-land:mt-1 ipad-land:text-sm">
         {text}
+      </p>
+      <p className="mt-1 text-center text-xs font-semibold text-slate-400">
+        小提示：点一下图案，可以看到它是第几个。
       </p>
       {level >= 3 && <CountingProcess question={question} />}
     </div>

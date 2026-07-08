@@ -389,9 +389,14 @@ export function PracticeScreen({
                   className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[360px] ipad-land:p-2"
                 >
                   <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                    <p className="text-sm font-extrabold text-slate-600 sm:text-base">
-                      {helpTitle}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-extrabold text-slate-600 sm:text-base">
+                        {helpTitle}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-400">
+                        跟着 1、2、3 做，再去下面选答案
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={changeHelpMethod}

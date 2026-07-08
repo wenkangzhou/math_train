@@ -73,7 +73,9 @@ export function ResultScreen({
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
-          {routeReward && <ArrivalRewardCard reward={routeReward} />}
+          {routeReward && (
+            <ArrivalRewardCard reward={routeReward} earnedStars={result.stars} />
+          )}
 
           {newlyUnlocked.length > 0 && (
             <motion.div

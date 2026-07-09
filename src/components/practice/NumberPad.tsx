@@ -21,10 +21,14 @@ export function NumberPad({
   const numbers = Array.from({ length: max + 1 }, (_, i) => i)
   // 0~10 使用四列，优先保证儿童触控面积；0~20 使用七列控制总高度。
   const cols = max <= 10 ? 'grid-cols-4' : 'grid-cols-7'
+  const gridGap = max <= 10 ? 'gap-2.5 sm:gap-3' : 'gap-1.5 sm:gap-2.5 md:gap-3'
+  const keySize = max <= 10
+    ? 'aspect-[1.15] min-h-[60px] rounded-2xl text-2xl sm:text-3xl md:min-h-[68px] md:text-4xl ipad-land:min-h-[66px] ipad-land:rounded-[20px] ipad-land:text-3xl'
+    : 'min-h-[58px] rounded-xl text-xl sm:aspect-[1.15] sm:min-h-[60px] sm:rounded-2xl sm:text-3xl md:min-h-[68px] md:text-4xl ipad-land:min-h-[66px] ipad-land:rounded-[20px] ipad-land:text-3xl'
 
   return (
     <div className="w-full">
-      <div className={`grid ${cols} gap-2.5 sm:gap-3`}>
+      <div className={`grid ${cols} ${gridGap}`}>
         {numbers.map((n) => {
           const active = entered === n
           return (
@@ -37,7 +41,7 @@ export function NumberPad({
               aria-label={`数字 ${n}`}
               data-selected={active}
               className={[
-                'number-pad-key flex aspect-[1.15] min-h-[60px] items-center justify-center rounded-2xl text-2xl font-extrabold transition sm:text-3xl md:min-h-[68px] md:text-4xl ipad-land:min-h-[66px] ipad-land:rounded-[20px] ipad-land:text-3xl',
+                `number-pad-key flex items-center justify-center font-extrabold transition ${keySize}`,
                 'focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/60',
                 active
                   ? 'bg-sky text-white shadow-soft ring-4 ring-sky-deep'

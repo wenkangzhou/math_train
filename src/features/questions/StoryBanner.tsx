@@ -16,11 +16,12 @@ export function StoryBanner({ question, onSpeak }: StoryBannerProps) {
   const scene = getPictureBookScene(question)
   return (
     <motion.div
+      data-testid="story-banner"
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative flex w-full items-center gap-3 overflow-hidden rounded-card bg-gradient-to-br ${scene.cardClass} px-4 py-3 shadow-soft ring-1 sm:px-5 ipad-land:py-2.5`}
     >
-      <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-white/45" />
+      <div className="absolute right-0 top-[-2.5rem] h-24 w-24 rounded-full bg-white/45 sm:-right-8" />
       <div className="absolute bottom-2 right-16 h-4 w-12 rounded-full bg-white/50" />
       <span
         className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-3xl shadow-sm ring-1 ring-white/80 ipad-land:h-10 ipad-land:w-10 ipad-land:text-2xl"

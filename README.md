@@ -25,6 +25,7 @@ pnpm build      # 类型检查 + 生产构建
 pnpm preview    # 预览构建产物
 pnpm gen:icons  # 由 public/logo-v2.png 生成 PWA / iOS 图标到 public/icons/
 pnpm shots [url] # Playwright 截 iPad 横竖屏布局图到 screenshots/（默认 http://localhost:4173）
+pnpm shots:book [url] # 强制截图绘本图片题/故事题到 screenshots/book/
 ```
 
 发布前建议按 [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) 做一轮 iPad 横屏、离线、语音、奖励与错题本验收。

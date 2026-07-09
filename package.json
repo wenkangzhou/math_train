@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "gen:icons": "node scripts/gen-icons.mjs",
-    "shots": "node scripts/shot.mjs"
+    "shots": "node scripts/shot.mjs",
+    "shots:book": "node scripts/shot-book.mjs"
   },
   "dependencies": {
     "framer-motion": "^11.3.19",

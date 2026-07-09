@@ -201,6 +201,7 @@ export function PictureQuestion({ question, entered, feedback }: PictureQuestion
 
   return (
     <motion.div
+      data-testid="picture-question-card"
       animate={cardAnim}
       transition={{ duration: feedback === 'wrong' ? 0.45 : 0.4 }}
       className={`relative w-full overflow-hidden rounded-card bg-cream px-4 py-4 shadow-soft sm:px-6 ${ring}`}

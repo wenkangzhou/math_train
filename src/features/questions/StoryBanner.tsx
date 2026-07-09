@@ -23,6 +23,17 @@ export function StoryBanner({ question, onSpeak }: StoryBannerProps) {
     >
       <div className="absolute right-0 top-[-2.5rem] h-24 w-24 rounded-full bg-white/45 sm:-right-8" />
       <div className="absolute bottom-2 right-16 h-4 w-12 rounded-full bg-white/50" />
+      <div className="pointer-events-none absolute bottom-3 right-4 flex gap-1.5 text-base opacity-50" aria-hidden="true">
+        {scene.decorations.slice(0, 3).map((emoji, index) => (
+          <motion.span
+            key={`${emoji}-${index}`}
+            animate={{ y: [0, -2, 0] }}
+            transition={{ delay: index * 0.14, duration: 2.6, repeat: Infinity }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+      </div>
       <span
         className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-3xl shadow-sm ring-1 ring-white/80 ipad-land:h-10 ipad-land:w-10 ipad-land:text-2xl"
         aria-hidden="true"

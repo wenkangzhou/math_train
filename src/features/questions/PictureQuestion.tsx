@@ -22,6 +22,36 @@ const PROMPT: Record<Question['pattern'], string> = {
 
 type PictureItemState = 'solid' | 'new' | 'faded' | 'ghost'
 
+function SceneDecorations({ decorations }: { decorations: string[] }) {
+  return (
+    <>
+      <div className="pointer-events-none absolute bottom-11 left-3 flex gap-2 text-lg opacity-70 ipad-land:bottom-9 ipad-land:text-base" aria-hidden="true">
+        {decorations.slice(0, 3).map((emoji, index) => (
+          <motion.span
+            key={`${emoji}-${index}`}
+            initial={{ y: 4, opacity: 0 }}
+            animate={{ y: [0, -3, 0], opacity: 1 }}
+            transition={{ delay: index * 0.1, duration: 2.8, repeat: Infinity, repeatDelay: 1.6 }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute right-4 top-14 flex gap-1 text-base opacity-55 ipad-land:top-12 ipad-land:text-sm" aria-hidden="true">
+        {decorations.slice(3, 5).map((emoji, index) => (
+          <motion.span
+            key={`${emoji}-sky-${index}`}
+            animate={{ rotate: [-4, 4, -4] }}
+            transition={{ delay: index * 0.2, duration: 3.2, repeat: Infinity }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function PictureItems({
   count,
   emoji,
@@ -156,6 +186,7 @@ function PictureScene({ question }: { question: Question }) {
       <div className="absolute left-4 top-5 h-5 w-14 rounded-full bg-white/65" />
       <div className="absolute right-8 top-8 h-4 w-10 rounded-full bg-white/55" />
       <div className={`absolute inset-x-0 bottom-0 h-10 ${scene.groundClass}`} />
+      <SceneDecorations decorations={scene.decorations} />
       <div className="relative z-10">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className={`rounded-full px-3 py-1 text-xs font-extrabold ring-1 ${scene.accentClass}`}>
@@ -214,6 +245,9 @@ export function PictureQuestion({ question, entered, feedback }: PictureQuestion
           </h2>
           <p className="mt-0.5 text-sm font-semibold text-slate-500 ipad-land:text-xs">
             {scene.helperLine}
+          </p>
+          <p className="mt-1 line-clamp-2 text-xs font-bold text-slate-400 ipad-land:hidden">
+            {scene.storyLine}
           </p>
         </div>
       </div>

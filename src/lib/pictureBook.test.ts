@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Question } from '@/types/math'
+import { VISUAL_THEMES } from './visualTheme'
 import {
   enrichPictureBookQuestion,
   getPictureBookScene,
@@ -34,6 +35,30 @@ describe('绘本题素材', () => {
     expect(first.title).toContain(first.sceneName)
     expect(first.actor).toBeTruthy()
     expect(first.itemEmoji).toBe('🍎')
+    expect(first.storyLine).toContain(first.actor)
+    expect(first.decorations.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('每个视觉主题都有绘本场景素材', () => {
+    for (const { theme } of VISUAL_THEMES) {
+      const scene = getPictureBookScene(makeQuestion({ id: `theme-${theme}`, visualTheme: theme }))
+
+      expect(scene.sceneName).toBeTruthy()
+      expect(scene.sceneEmoji).toBeTruthy()
+      expect(scene.helperLine.length).toBeGreaterThan(8)
+      expect(scene.storyLine).toContain(scene.actor)
+      expect(scene.decorations.length).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('同一主题能稳定切换不同小场景，减少重复感', () => {
+    const sceneNames = new Set(
+      Array.from({ length: 24 }, (_, index) =>
+        getPictureBookScene(makeQuestion({ id: `car-scene-${index}`, visualTheme: 'car' })).sceneName,
+      ),
+    )
+
+    expect(sceneNames.size).toBeGreaterThan(1)
   })
 
   it('所有题型都有儿童化故事提问', () => {
@@ -59,9 +84,11 @@ describe('绘本题素材', () => {
         fullResult: pattern.includes('minus') ? 3 : 7,
       })
       const text = pictureBookQuestionText(q)
+      const scene = getPictureBookScene(q)
 
       expect(text.length).toBeGreaterThan(10)
       expect(text).toMatch(/[？?]/)
+      expect(text).toContain(scene.sceneName)
     }
   })
 

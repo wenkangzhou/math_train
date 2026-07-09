@@ -11,6 +11,7 @@ import type {
 import { VISUAL_THEMES } from './visualTheme'
 import { genEquationForSkill, skillOperation, skillRange } from './skills'
 import { storyText } from './story'
+import { enrichPictureBookQuestion } from './pictureBook'
 
 // ---------------------------------------------------------------------------
 // 工具函数
@@ -301,10 +302,10 @@ export function generateQuestions(
 // 给题目附加呈现格式与故事文案
 function applyFormat(q: Question, format: QuestionFormat): Question {
   if (format === 'story') {
-    return { ...q, format, story: storyText(q) }
+    return { ...enrichPictureBookQuestion(q), format, story: storyText(q) }
   }
   if (format === 'picture') {
-    return { ...q, format }
+    return { ...enrichPictureBookQuestion(q), format }
   }
   return { ...q, format: 'equation' }
 }

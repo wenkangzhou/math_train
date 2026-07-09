@@ -154,4 +154,20 @@ describe('generateQuestions — full set', () => {
       expect(q.range).toBe(10)
     }
   })
+
+  it('adds picture-book metadata for picture and story formats', () => {
+    const qs = generateQuestions({
+      ...baseSettings,
+      questionCount: 10,
+      questionFormats: ['picture', 'story'],
+    })
+
+    for (const q of qs) {
+      expect(['picture', 'story']).toContain(q.format)
+      expect(q.story).toBeTruthy()
+      expect(q.storyActor).toBeTruthy()
+      expect(q.storyTitle).toBeTruthy()
+      expect(q.storyScene).toBeTruthy()
+    }
+  })
 })

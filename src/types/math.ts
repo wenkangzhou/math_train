@@ -86,6 +86,8 @@ export interface Question {
   story?: string
   // 故事/图片题的主角与场景（用于朗读与插图）
   storyActor?: string
+  storyTitle?: string
+  storyScene?: string
 }
 
 export type QuestionCount = 5 | 10 | 20

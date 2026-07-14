@@ -231,22 +231,30 @@ export function DragHint({ question }: DragHintProps) {
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
           {/* 这里（可拖走） */}
           <div>
-            <p className="mb-1 text-center text-sm font-semibold text-slate-500">这里</p>
+            <p className="mb-1 text-center text-sm font-semibold text-slate-500">
+              还在这里（{running} 个）
+            </p>
             <div className={`${tray} bg-sky-soft/40`}>
-              {Array.from({ length: remaining }, (_, i) => (
-                <DraggableItem
-                  key={`${question.id}-take-${placed}-${i}`}
-                  emoji={emoji}
-                  targetRef={targetRef}
-                  onPlaced={place}
-                />
-              ))}
+              {Array.from({ length: running }, (_, i) =>
+                done ? (
+                  <StaticItem key={`${question.id}-left-${i}`} emoji={emoji} />
+                ) : (
+                  <DraggableItem
+                    key={`${question.id}-take-${placed}-${i}`}
+                    emoji={emoji}
+                    targetRef={targetRef}
+                    onPlaced={place}
+                  />
+                ),
+              )}
             </div>
           </div>
           <div className="flex items-center text-2xl text-slate-300">→</div>
           {/* 开走啦 */}
           <div>
-            <p className="mb-1 text-center text-sm font-semibold text-coral">开走啦</p>
+            <p className="mb-1 text-center text-sm font-semibold text-coral">
+              开走啦（{placed} 个）
+            </p>
             <div ref={targetRef} className={`${tray} border-2 border-dashed border-coral/40 bg-coral/5`}>
               {Array.from({ length: placed }, (_, i) => (
                 <StaticItem key={`${question.id}-gone-${i}`} emoji={emoji} faded />

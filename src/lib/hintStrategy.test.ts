@@ -28,10 +28,31 @@ describe('儿童辅助推荐', () => {
     expect(recommendedHintMethod(addition, 2)).toBe('numberline')
   })
 
-  it('20以内直接推荐小火车数轴', () => {
+  it('20以内普通题推荐小火车数轴', () => {
     expect(recommendedHintMethod({ ...addition, range: 20 }, 0)).toBe(
       'numberline',
     )
+  })
+
+  it('20以内直接减法优先推荐十格图', () => {
+    const subtraction: Question = {
+      ...addition,
+      id: 'hint-sub-20',
+      operation: 'subtraction',
+      range: 20,
+      pattern: 'a-minus-b-equals-blank',
+      left: 19,
+      right: 11,
+      result: null,
+      answer: 8,
+      fullLeft: 19,
+      fullRight: 11,
+      fullResult: 8,
+    }
+
+    expect(recommendedHintMethod(subtraction, 0)).toBe('tenframe')
+    expect(alternateHintMethod('tenframe', subtraction)).toBe('numberline')
+    expect(alternateHintMethod('numberline', subtraction)).toBe('tenframe')
   })
 
   it('缺项题与减法使用可操作的摆一摆', () => {

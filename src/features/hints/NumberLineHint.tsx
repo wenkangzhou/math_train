@@ -16,15 +16,25 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
   const max = question.range // 10 | 20
   const plan = useMemo(() => createNumberLinePlan(question), [question])
   const { start, end, steps: totalSteps, direction } = plan
+  const jumpAmounts = useMemo(
+    () =>
+      plan.jumpAmounts ?? Array.from({ length: totalSteps }, () => 1),
+    [plan.jumpAmounts, totalSteps],
+  )
 
-  // 当前已走的步数（0..totalSteps）
-  const [step, setStep] = useState(0)
+  // 当前完成的大步数。普通题每个大步仍是 1 格；20以内减法按整十分块。
+  const [move, setMove] = useState(0)
   useEffect(() => {
-    setStep(0)
+    setMove(0)
   }, [question.id])
 
-  const current = numberLineCurrentValue(plan, step)
-  const reachedEnd = step >= totalSteps
+  const movedDistance = jumpAmounts
+    .slice(0, move)
+    .reduce((total, amount) => total + amount, 0)
+  const current = numberLineCurrentValue(plan, movedDistance)
+  const reachedEnd = move >= jumpAmounts.length
+  const lastJump = move > 0 ? jumpAmounts[move - 1] : 0
+  const nextJump = reachedEnd ? 0 : jumpAmounts[move]
 
   const ticks = useMemo(
     () => Array.from({ length: max + 1 }, (_, i) => i),
@@ -35,9 +45,9 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
 
   const caption = useMemo(() => {
     if (reachedEnd) return plan.done
-    if (step === 0) return plan.intro
-    return `现在停在 ${current}，已经走了 ${step} 步。`
-  }, [current, plan.done, plan.intro, reachedEnd, step])
+    if (move === 0) return plan.intro
+    return `刚才跳了 ${lastJump} 格，现在停在 ${current}。`
+  }, [current, lastJump, move, plan.done, plan.intro, reachedEnd])
 
   return (
     <div className="rounded-card bg-white/85 p-3 shadow-soft ipad-land:p-2">
@@ -122,7 +132,10 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
         {caption}
       </p>
       <p className="mt-0.5 text-center text-xs font-semibold text-slate-400">
-        已走 {step}/{totalSteps} 步
+        已走 {movedDistance}/{totalSteps} 格
+        {jumpAmounts.some((amount) => amount > 1)
+          ? ` · 第 ${move}/${jumpAmounts.length} 大步`
+          : ''}
         {plan.answerKind === 'steps' && reachedEnd ? '，走的步数就是答案' : ''}
       </p>
 
@@ -130,15 +143,21 @@ export function NumberLineHint({ question }: NumberLineHintProps) {
       <div className="mt-2 flex items-center justify-center gap-2">
         <button
           type="button"
-          onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
+          onClick={() => setMove((currentMove) => Math.min(jumpAmounts.length, currentMove + 1))}
           disabled={reachedEnd}
           className="rounded-full bg-sky px-5 py-2 text-sm font-bold text-white shadow-soft transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/50 sm:text-base ipad-land:text-sm"
         >
-          {direction === 'right' ? '向右一步 →' : '← 向左一步'}
+          {direction === 'right'
+            ? nextJump > 1
+              ? `向右跳 ${nextJump} 格 →`
+              : '向右一步 →'
+            : nextJump > 1
+              ? `← 向左跳 ${nextJump} 格`
+              : '← 向左一步'}
         </button>
         <button
           type="button"
-          onClick={() => setStep(0)}
+          onClick={() => setMove(0)}
           className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:text-base ipad-land:text-sm"
         >
           重来

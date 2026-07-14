@@ -17,6 +17,7 @@ import { StoryBanner } from '@/features/questions/StoryBanner'
 import { NumberPad } from './NumberPad'
 import { VisualHint } from './VisualHint'
 import { NumberLineHint } from '@/features/hints/NumberLineHint'
+import { SubtractionTenFrameHint } from '@/features/hints/SubtractionTenFrameHint'
 import { DragHint } from '@/features/hints/DragHint'
 import { FeedbackOverlay } from './FeedbackOverlay'
 import { ConfirmExitDialog } from '@/components/common/ConfirmExitDialog'
@@ -269,7 +270,7 @@ export function PracticeScreen({
     setShowHint((prev) =>
       prev === 'none'
         ? recommendedHintMethod(question, attempts)
-        : alternateHintMethod(prev),
+        : alternateHintMethod(prev, question),
     )
     setUsedHint(true)
   }, [attempts, question])
@@ -304,11 +305,13 @@ export function PracticeScreen({
   if (!question) return null
 
   const concreteMode = objectHintMode(question)
-  const helpTitle = showHint === 'numberline'
-    ? '🚂 小火车走一走'
-    : concreteMode === 'manipulative'
-      ? '🖐️ 摆一摆'
-      : '🔢 数一数'
+  const helpTitle = showHint === 'tenframe'
+    ? '🔟 十个一组拿走'
+    : showHint === 'numberline'
+      ? '🚂 小火车走一走'
+      : concreteMode === 'manipulative'
+        ? '🖐️ 摆一摆'
+        : '🔢 数一数'
 
   return (
     <div
@@ -386,7 +389,7 @@ export function PracticeScreen({
                   aria-label="学习辅助内容"
                   id="learning-helper-panel"
                   data-hint-method={showHint}
-                  className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[360px] ipad-land:p-2"
+                  className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[400px] ipad-land:p-2"
                 >
                   <div className="mb-2 flex items-center justify-between gap-3 px-1">
                     <div className="min-w-0">
@@ -411,6 +414,12 @@ export function PracticeScreen({
                   )}
                   {showHint === 'objects' && concreteMode === 'manipulative' && (
                     <DragHint key={question.id} question={question} />
+                  )}
+                  {showHint === 'tenframe' && (
+                    <SubtractionTenFrameHint
+                      key={question.id}
+                      question={question}
+                    />
                   )}
                   {showHint === 'numberline' && (
                     <NumberLineHint key={question.id} question={question} />

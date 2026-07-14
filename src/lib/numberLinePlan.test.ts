@@ -116,4 +116,45 @@ describe('数轴提示规划', () => {
     expect(subPlan.answerKind).toBe('steps')
     expect(subPlan.steps).toBe(2)
   })
+
+  it('19-11 按10和1分成两个大步，不需要逐格点11次', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        operation: 'subtraction',
+        range: 20,
+        pattern: 'a-minus-b-equals-blank',
+        left: 19,
+        right: 11,
+        result: null,
+        answer: 8,
+        fullLeft: 19,
+        fullRight: 11,
+        fullResult: 8,
+      }),
+    )
+
+    expect(plan.jumpAmounts).toEqual([10, 1])
+    expect(numberLineCurrentValue(plan, plan.jumpAmounts![0])).toBe(9)
+    expect(numberLineCurrentValue(plan, plan.steps)).toBe(8)
+  })
+
+  it('13-8 先跳到10，再跳完剩下的5格', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        operation: 'subtraction',
+        range: 20,
+        pattern: 'a-minus-b-equals-blank',
+        left: 13,
+        right: 8,
+        result: null,
+        answer: 5,
+        fullLeft: 13,
+        fullRight: 8,
+        fullResult: 5,
+      }),
+    )
+
+    expect(plan.jumpAmounts).toEqual([3, 5])
+    expect(numberLineCurrentValue(plan, plan.jumpAmounts![0])).toBe(10)
+  })
 })

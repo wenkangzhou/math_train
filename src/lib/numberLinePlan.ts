@@ -12,6 +12,21 @@ export interface NumberLinePlan {
   intro: string
   done: string
   stepLabels: string[]
+  // 20以内减法优先按“到整十”的大步跳，避免逐格点十几次。
+  // 数组之和始终等于 steps；未提供时仍按每次 1 格移动。
+  jumpAmounts?: number[]
+}
+
+function subtractionJumpAmounts(left: number, right: number): number[] {
+  if (right <= 0) return []
+  if (right >= 10) return [10, right - 10].filter((step) => step > 0)
+
+  const ones = left % 10
+  if (left > 10 && left < 20 && ones > 0 && ones < right) {
+    return [ones, right - ones].filter((step) => step > 0)
+  }
+
+  return [right]
 }
 
 export function createNumberLinePlan(question: Question): NumberLinePlan {
@@ -54,6 +69,26 @@ export function createNumberLinePlan(question: Question): NumberLinePlan {
         stepLabels: ['站在总数', '退掉后来数', '看原来几个'],
       }
     case 'a-minus-b-equals-blank':
+      if (question.range === 20) {
+        const jumpAmounts = subtractionJumpAmounts(L, R)
+        const firstJump = jumpAmounts[0] ?? R
+        const secondJump = jumpAmounts[1]
+        return {
+          start: L,
+          end: C,
+          steps: R,
+          direction: 'left',
+          answerKind: 'landing',
+          intro: secondJump
+            ? `先站在 ${L}，先向左跳 ${firstJump} 格，再跳 ${secondJump} 格。`
+            : `先站在 ${L}，向左一大步跳 ${firstJump} 格。`,
+          done: `${L} 一共向左走 ${R} 格，停在 ${C}，答案是 ${C}。`,
+          stepLabels: secondJump
+            ? ['站在原来数', `先跳 ${firstJump} 再跳 ${secondJump}`, '看停在哪里']
+            : ['站在原来数', `一大步跳 ${firstJump}`, '看停在哪里'],
+          jumpAmounts,
+        }
+      }
       return {
         start: L,
         end: C,
@@ -65,6 +100,24 @@ export function createNumberLinePlan(question: Question): NumberLinePlan {
         stepLabels: ['站在原来数', '向左拿走', '看剩下几个'],
       }
     case 'a-minus-blank-equals-c':
+      if (question.range === 20) {
+        const jumpAmounts = subtractionJumpAmounts(L, R)
+        const firstJump = jumpAmounts[0] ?? R
+        const secondJump = jumpAmounts[1]
+        return {
+          start: L,
+          end: C,
+          steps: R,
+          direction: 'left',
+          answerKind: 'steps',
+          intro: secondJump
+            ? `从 ${L} 先跳 ${firstJump} 格，再跳 ${secondJump} 格到 ${C}。`
+            : `从 ${L} 一大步跳到 ${C}，看看跳了几格。`,
+          done: `从 ${L} 到 ${C} 一共走了 ${R} 格，答案是 ${R}。`,
+          stepLabels: ['站在原来数', '分大步跳到剩下数', '把格数加起来'],
+          jumpAmounts,
+        }
+      }
       return {
         start: L,
         end: C,

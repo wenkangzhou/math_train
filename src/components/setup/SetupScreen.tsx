@@ -510,11 +510,15 @@ export function SetupScreen({
                     <RangeSelector selected={ranges} onToggle={toggleRange} />
                   </SectionCard>
 
-                  <SectionCard title="2. 选择算式题型" hint="蓝色表示已选择">
+                  <SectionCard
+                    title="2. 选择算式题型"
+                    hint={adaptiveDifficulty ? '由自动难度安排' : '蓝色表示已选择'}
+                  >
                     <PatternSelector
                       selected={patterns}
                       additionEnabled={hasAddition}
                       subtractionEnabled={hasSubtraction}
+                      controlledByAdaptive={adaptiveDifficulty}
                       onToggle={togglePattern}
                     />
                   </SectionCard>

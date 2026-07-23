@@ -94,6 +94,9 @@ export function AdvancedSettingsDrawer({
                         <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
                           连续两趟轻松答对会升一级；明显吃力时退一级，不会在一趟中途突然变化。
                         </p>
+                        <p className="mt-1.5 text-xs font-bold leading-5 text-sky-700">
+                          开启后仍按你选择的加法/减法练习，但 10/20 难度、算式题型和专项技能由系统安排。
+                        </p>
                       </div>
                       <SwitchButton
                         checked={adaptiveDifficulty}

@@ -4,7 +4,7 @@ interface KidStepsProps {
 
 export function KidSteps({ steps }: KidStepsProps) {
   return (
-    <div className="mb-2 grid grid-cols-3 gap-1.5 rounded-2xl bg-sky-50/80 p-1.5 ring-1 ring-sky-100">
+    <div className="mb-2 grid grid-cols-3 gap-1.5 rounded-2xl bg-sky-50/80 p-1.5 ring-1 ring-sky-100 ipad-land:mb-1">
       {steps.slice(0, 3).map((step, index) => (
         <div
           key={`${index}-${step}`}

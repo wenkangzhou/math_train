@@ -17,6 +17,7 @@ import { StoryBanner } from '@/features/questions/StoryBanner'
 import { NumberPad } from './NumberPad'
 import { VisualHint } from './VisualHint'
 import { NumberLineHint } from '@/features/hints/NumberLineHint'
+import { AdditionTenFrameHint } from '@/features/hints/AdditionTenFrameHint'
 import { SubtractionTenFrameHint } from '@/features/hints/SubtractionTenFrameHint'
 import { DragHint } from '@/features/hints/DragHint'
 import { FeedbackOverlay } from './FeedbackOverlay'
@@ -306,7 +307,9 @@ export function PracticeScreen({
 
   const concreteMode = objectHintMode(question)
   const helpTitle = showHint === 'tenframe'
-    ? '🔟 十个一组拿走'
+    ? question.operation === 'addition'
+      ? '🔟 凑成十再相加'
+      : '🔟 十个一组拿走'
     : showHint === 'numberline'
       ? '🚂 小火车走一走'
       : concreteMode === 'manipulative'
@@ -391,7 +394,7 @@ export function PracticeScreen({
                   data-hint-method={showHint}
                   className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[400px] ipad-land:p-2"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                  <div className="mb-2 flex items-center justify-between gap-3 px-1 ipad-land:mb-1">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-slate-600 sm:text-base">
                         {helpTitle}
@@ -416,10 +419,17 @@ export function PracticeScreen({
                     <DragHint key={question.id} question={question} />
                   )}
                   {showHint === 'tenframe' && (
-                    <SubtractionTenFrameHint
-                      key={question.id}
-                      question={question}
-                    />
+                    question.operation === 'addition' ? (
+                      <AdditionTenFrameHint
+                        key={question.id}
+                        question={question}
+                      />
+                    ) : (
+                      <SubtractionTenFrameHint
+                        key={question.id}
+                        question={question}
+                      />
+                    )
                   )}
                   {showHint === 'numberline' && (
                     <NumberLineHint key={question.id} question={question} />

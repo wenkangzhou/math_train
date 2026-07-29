@@ -12,9 +12,22 @@ export interface NumberLinePlan {
   intro: string
   done: string
   stepLabels: string[]
-  // 20以内减法优先按“到整十”的大步跳，避免逐格点十几次。
+  // 20以内加减法优先按“到整十”的大步跳，避免逐格点十几次。
   // 数组之和始终等于 steps；未提供时仍按每次 1 格移动。
   jumpAmounts?: number[]
+}
+
+function additionJumpAmounts(
+  start: number,
+  distance: number,
+  end: number,
+): number[] {
+  if (distance <= 0) return []
+  if (start < 10 && end > 10) {
+    const toTen = 10 - start
+    return [toTen, distance - toTen].filter((step) => step > 0)
+  }
+  return [distance]
 }
 
 function subtractionJumpAmounts(left: number, right: number): number[] {
@@ -36,6 +49,28 @@ export function createNumberLinePlan(question: Question): NumberLinePlan {
 
   switch (question.pattern) {
     case 'a-plus-b-equals-blank':
+      if (question.range === 20 && C > 10) {
+        const start = Math.max(L, R)
+        const distance = Math.min(L, R)
+        const jumpAmounts = additionJumpAmounts(start, distance, C)
+        const firstJump = jumpAmounts[0] ?? distance
+        const secondJump = jumpAmounts[1]
+        return {
+          start,
+          end: C,
+          steps: distance,
+          direction: 'right',
+          answerKind: 'landing',
+          intro: secondJump
+            ? `先站在 ${start}，先跳 ${firstJump} 格到 10，再跳 ${secondJump} 格。`
+            : `把较大的 ${start} 放前面，向右一大步跳 ${firstJump} 格。`,
+          done: `${start} 一共向右走 ${distance} 格，停在 ${C}，答案是 ${C}。`,
+          stepLabels: secondJump
+            ? ['站在较大数', `先跳 ${firstJump} 到 10`, `再跳 ${secondJump}`]
+            : ['站在较大数', `一大步跳 ${firstJump}`, '看停在哪里'],
+          jumpAmounts,
+        }
+      }
       return {
         start: L,
         end: C,
@@ -47,6 +82,24 @@ export function createNumberLinePlan(question: Question): NumberLinePlan {
         stepLabels: ['站在左边数', '向右走几步', '看停在哪里'],
       }
     case 'a-plus-blank-equals-c':
+      if (question.range === 20 && C > 10) {
+        const jumpAmounts = additionJumpAmounts(L, R, C)
+        const firstJump = jumpAmounts[0] ?? R
+        const secondJump = jumpAmounts[1]
+        return {
+          start: L,
+          end: C,
+          steps: R,
+          direction: 'right',
+          answerKind: 'steps',
+          intro: secondJump
+            ? `从 ${L} 先跳 ${firstJump} 格到 10，再跳 ${secondJump} 格到 ${C}。`
+            : `从 ${L} 一大步跳到 ${C}，看看跳了几格。`,
+          done: `从 ${L} 到 ${C} 一共走了 ${R} 格，答案是 ${R}。`,
+          stepLabels: ['站在已有数', '先跳到整十', '把两段格数相加'],
+          jumpAmounts,
+        }
+      }
       return {
         start: L,
         end: C,
@@ -58,6 +111,24 @@ export function createNumberLinePlan(question: Question): NumberLinePlan {
         stepLabels: ['站在已有数', '走到总数', '数走了几步'],
       }
     case 'blank-plus-b-equals-c':
+      if (question.range === 20 && C > 10) {
+        const jumpAmounts = subtractionJumpAmounts(C, R)
+        const firstJump = jumpAmounts[0] ?? R
+        const secondJump = jumpAmounts[1]
+        return {
+          start: C,
+          end: L,
+          steps: R,
+          direction: 'left',
+          answerKind: 'landing',
+          intro: secondJump
+            ? `从总数 ${C} 先退 ${firstJump} 格到 10，再退 ${secondJump} 格。`
+            : `从总数 ${C} 一大步退 ${firstJump} 格。`,
+          done: `从 ${C} 往左一共退 ${R} 格，停在 ${L}，答案是 ${L}。`,
+          stepLabels: ['站在总数', '分大步退掉已知数', '看原来几个'],
+          jumpAmounts,
+        }
+      }
       return {
         start: C,
         end: L,

@@ -34,6 +34,24 @@ describe('儿童辅助推荐', () => {
     )
   })
 
+  it('20以内跨十加法优先推荐十格图', () => {
+    const makeTen: Question = {
+      ...addition,
+      id: 'hint-add-20-make-ten',
+      range: 20,
+      left: 8,
+      right: 7,
+      answer: 15,
+      fullLeft: 8,
+      fullRight: 7,
+      fullResult: 15,
+    }
+
+    expect(recommendedHintMethod(makeTen, 0)).toBe('tenframe')
+    expect(alternateHintMethod('tenframe', makeTen)).toBe('numberline')
+    expect(alternateHintMethod('numberline', makeTen)).toBe('tenframe')
+  })
+
   it('20以内直接减法优先推荐十格图', () => {
     const subtraction: Question = {
       ...addition,

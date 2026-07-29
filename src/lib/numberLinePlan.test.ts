@@ -157,4 +157,79 @@ describe('数轴提示规划', () => {
     expect(plan.jumpAmounts).toEqual([3, 5])
     expect(numberLineCurrentValue(plan, plan.jumpAmounts![0])).toBe(10)
   })
+
+  it('8+7 先跳2格到10，再跳剩下的5格', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        range: 20,
+        left: 8,
+        right: 7,
+        answer: 15,
+        fullLeft: 8,
+        fullRight: 7,
+        fullResult: 15,
+      }),
+    )
+
+    expect(plan.jumpAmounts).toEqual([2, 5])
+    expect(numberLineCurrentValue(plan, plan.jumpAmounts![0])).toBe(10)
+    expect(numberLineCurrentValue(plan, plan.steps)).toBe(15)
+  })
+
+  it('3+12 会从较大的12出发，只跳3格', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        range: 20,
+        left: 3,
+        right: 12,
+        answer: 15,
+        fullLeft: 3,
+        fullRight: 12,
+        fullResult: 15,
+      }),
+    )
+
+    expect(plan.start).toBe(12)
+    expect(plan.steps).toBe(3)
+    expect(plan.jumpAmounts).toEqual([3])
+  })
+
+  it('8+?=15 用2和5两个大步记录未知加数7', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        range: 20,
+        pattern: 'a-plus-blank-equals-c',
+        left: 8,
+        right: null,
+        result: 15,
+        answer: 7,
+        fullLeft: 8,
+        fullRight: 7,
+        fullResult: 15,
+      }),
+    )
+
+    expect(plan.answerKind).toBe('steps')
+    expect(plan.jumpAmounts).toEqual([2, 5])
+  })
+
+  it('?+7=15 从总数先退到10，再退2格找到8', () => {
+    const plan = createNumberLinePlan(
+      makeQuestion({
+        range: 20,
+        pattern: 'blank-plus-b-equals-c',
+        left: null,
+        right: 7,
+        result: 15,
+        answer: 8,
+        fullLeft: 8,
+        fullRight: 7,
+        fullResult: 15,
+      }),
+    )
+
+    expect(plan.jumpAmounts).toEqual([5, 2])
+    expect(numberLineCurrentValue(plan, plan.jumpAmounts![0])).toBe(10)
+    expect(numberLineCurrentValue(plan, plan.steps)).toBe(8)
+  })
 })

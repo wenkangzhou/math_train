@@ -40,6 +40,49 @@ export interface StreakState {
   lastActiveDate: string // yyyy-mm-dd
 }
 
+export type RouteSceneryTheme =
+  | 'city'
+  | 'express'
+  | 'forest'
+  | 'mail'
+  | 'rescue'
+  | 'harbor'
+  | 'night'
+  | 'snow'
+  | 'builder'
+  | 'festival'
+  | 'mountain'
+  | 'energy'
+  | 'coast'
+  | 'galaxy'
+
+export type RouteTerrain =
+  | 'city'
+  | 'field'
+  | 'forest'
+  | 'water'
+  | 'night'
+  | 'snow'
+  | 'worksite'
+  | 'festival'
+  | 'mountain'
+  | 'energy'
+  | 'coast'
+  | 'space'
+
+export interface RouteWaypoint {
+  label: string
+  landmarkEmoji: string
+  decorations: [string, string, string]
+  terrain: RouteTerrain
+}
+
+export interface TrainRouteScenery {
+  theme: RouteSceneryTheme
+  journeyLabel: string
+  waypoints: [RouteWaypoint, RouteWaypoint, RouteWaypoint]
+}
+
 export interface TrainRoute {
   id: string
   trainId: string
@@ -48,6 +91,7 @@ export interface TrainRoute {
   missionDetail: string
   cargoEmoji: string
   stampEmoji: string
+  scenery: TrainRouteScenery
 }
 
 export interface RouteReward extends TrainRoute {

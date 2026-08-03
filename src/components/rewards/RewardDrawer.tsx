@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { BellRing, CheckCircle2, Lock, MapPin, Play, Star, X } from 'lucide-react'
-import type { Carriage, RewardState, TrainRoute } from '@/types/rewards'
+import type {
+  Carriage,
+  RewardState,
+  RouteSceneryTheme,
+  RouteTerrain,
+  RouteWaypoint,
+  TrainRoute,
+} from '@/types/rewards'
 import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
 import { TRAIN_ROUTES, getTrainRoute, routeStampId } from '@/lib/trainRoutes'
 import { estimateTripsRemaining } from '@/lib/starWeights'
@@ -20,6 +27,30 @@ interface RewardDrawerProps {
 const JOURNEY_DURATION_SECONDS = 9
 const RETURN_BELL_MS = 8200
 const JOURNEY_STOP_MS = 9300
+
+interface RouteSceneStyle {
+  skyClass: string
+  groundClass: string
+  orb: string
+  trackClass: string
+}
+
+const ROUTE_SCENE_STYLES: Record<RouteSceneryTheme, RouteSceneStyle> = {
+  city: { skyClass: 'from-sky-100 via-white to-emerald-100', groundClass: 'from-transparent via-emerald-50 to-green-200', orb: '☀️', trackClass: 'bg-slate-500/70' },
+  express: { skyClass: 'from-orange-100 via-amber-50 to-yellow-100', groundClass: 'from-transparent via-amber-50 to-orange-200', orb: '🌅', trackClass: 'bg-red-500/65' },
+  forest: { skyClass: 'from-emerald-100 via-lime-50 to-green-100', groundClass: 'from-transparent via-green-100 to-emerald-300', orb: '🌤️', trackClass: 'bg-emerald-800/60' },
+  mail: { skyClass: 'from-amber-100 via-yellow-50 to-lime-100', groundClass: 'from-transparent via-yellow-100 to-lime-200', orb: '☀️', trackClass: 'bg-amber-700/60' },
+  rescue: { skyClass: 'from-orange-100 via-rose-50 to-amber-100', groundClass: 'from-transparent via-orange-100 to-stone-300', orb: '🌞', trackClass: 'bg-orange-800/60' },
+  harbor: { skyClass: 'from-cyan-100 via-sky-100 to-blue-200', groundClass: 'from-transparent via-cyan-100 to-blue-300', orb: '🌤️', trackClass: 'bg-blue-900/55' },
+  night: { skyClass: 'from-indigo-950 via-violet-900 to-slate-800', groundClass: 'from-transparent via-indigo-900/70 to-slate-800', orb: '🌙', trackClass: 'bg-violet-200/55' },
+  snow: { skyClass: 'from-cyan-50 via-sky-50 to-blue-100', groundClass: 'from-transparent via-white to-cyan-100', orb: '❄️', trackClass: 'bg-cyan-800/55' },
+  builder: { skyClass: 'from-teal-100 via-cyan-50 to-amber-100', groundClass: 'from-transparent via-stone-100 to-amber-200', orb: '⛅', trackClass: 'bg-teal-800/60' },
+  festival: { skyClass: 'from-pink-100 via-rose-50 to-yellow-100', groundClass: 'from-transparent via-pink-100 to-violet-200', orb: '🎈', trackClass: 'bg-pink-800/55' },
+  mountain: { skyClass: 'from-slate-200 via-sky-100 to-stone-200', groundClass: 'from-transparent via-slate-200 to-stone-400', orb: '☁️', trackClass: 'bg-slate-800/60' },
+  energy: { skyClass: 'from-lime-100 via-cyan-50 to-emerald-100', groundClass: 'from-transparent via-lime-100 to-emerald-200', orb: '☀️', trackClass: 'bg-lime-900/55' },
+  coast: { skyClass: 'from-rose-100 via-orange-50 to-cyan-100', groundClass: 'from-transparent via-cyan-100 to-sky-300', orb: '🌅', trackClass: 'bg-rose-800/55' },
+  galaxy: { skyClass: 'from-indigo-950 via-purple-950 to-slate-950', groundClass: 'from-transparent via-indigo-900 to-purple-950', orb: '🪐', trackClass: 'bg-fuchsia-200/55' },
+}
 
 export function RewardDrawer({
   open,
@@ -179,9 +210,7 @@ export function RewardDrawer({
                   </span>
                 </div>
 
-                <div className="relative mt-5 h-44 overflow-hidden rounded-[26px] bg-gradient-to-b from-sky-100 via-white/95 to-green-100 ring-1 ring-white/50">
-                  <div className="absolute left-6 top-4 h-7 w-16 rounded-full bg-white/75 blur-[1px]" />
-                  <div className="absolute right-10 top-7 h-5 w-12 rounded-full bg-white/65" />
+                <div className="relative mt-5 h-44 overflow-hidden rounded-[26px] bg-white/80 ring-1 ring-white/50">
                   <div className="absolute left-4 top-3 z-20 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold text-slate-600 shadow-sm">
                     {focusedTrain.name} · {focusedTrain.functionLabel}
                   </div>
@@ -204,7 +233,7 @@ export function RewardDrawer({
                   />
                 </div>
                 <p className="mt-2 text-center text-xs font-extrabold text-white/90">
-                  🚉 出站 → 🐄 牧场 → 🌉 河桥 → 🏘️ 小镇 → 🚉 回原站
+                  {focusedRoute.scenery.journeyLabel}
                 </p>
 
                 {nextReward ? (
@@ -287,16 +316,18 @@ export function RewardDrawer({
                         setDetailOpen(true)
                       }}
                       className={[
-                        'relative flex min-h-[142px] flex-col items-center justify-center rounded-3xl p-3 text-center transition',
+                        'relative flex min-h-[166px] flex-col items-center justify-center rounded-3xl p-3 text-center transition',
                         unlocked
                           ? 'bg-white shadow-soft ring-1 ring-sky-100'
                           : 'bg-slate-100 text-slate-400 ring-1 ring-slate-200',
                         focusedTrain.id === item.id ? 'ring-4 ring-sky-300' : '',
                       ].join(' ')}
                     >
-                      <div className={unlocked ? '' : 'opacity-[0.55] saturate-[0.75]'}>
-                        <TrainEngineArt item={item} compact />
-                      </div>
+                      <GarageTrainPreview
+                        item={item}
+                        route={getTrainRoute(item.id)}
+                        locked={!unlocked}
+                      />
                       <span className="mt-1 text-sm font-extrabold text-slate-700">
                         {item.name}
                       </span>
@@ -374,6 +405,12 @@ export function RewardDrawer({
                     <TrainFact label="工作" value={`${focusedTrain.emoji} ${focusedTrain.functionLabel}`} />
                     <TrainFact label="性格" value={focusedTrain.personality} />
                   </div>
+                  <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2.5 ring-1 ring-amber-100">
+                    <span className="block text-xs font-bold text-amber-600">专属行驶场景</span>
+                    <span className="mt-0.5 block text-xs font-extrabold leading-5 text-slate-600">
+                      {focusedRoute.scenery.journeyLabel}
+                    </span>
+                  </div>
                   <p className="mt-3 rounded-2xl bg-sky-50 p-3 text-sm font-medium leading-6 text-slate-600">
                     {focusedTrain.description}
                   </p>
@@ -428,6 +465,42 @@ function TrainFact({ label, value }: { label: string; value: string }) {
   )
 }
 
+function GarageTrainPreview({
+  item,
+  route,
+  locked,
+}: {
+  item: Carriage
+  route: TrainRoute
+  locked: boolean
+}) {
+  const sceneStyle = ROUTE_SCENE_STYLES[route.scenery.theme]
+  const firstStop = route.scenery.waypoints[0]
+
+  return (
+    <div
+      className={[
+        `relative h-[82px] w-full overflow-hidden rounded-2xl bg-gradient-to-b ${sceneStyle.skyClass} ring-1 ring-white/70`,
+        locked ? 'opacity-[0.55] saturate-[0.65]' : '',
+      ].join(' ')}
+      aria-hidden="true"
+    >
+      <div className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b ${sceneStyle.groundClass}`} />
+      <span className="absolute right-2 top-1 text-xl drop-shadow-sm">{sceneStyle.orb}</span>
+      <span className="absolute left-2 top-1 rounded-full bg-white/75 px-2 py-0.5 text-[9px] font-extrabold text-slate-600 shadow-sm">
+        {firstStop.label}
+      </span>
+      <span className="absolute bottom-5 right-3 text-3xl drop-shadow-sm">
+        {firstStop.landmarkEmoji}
+      </span>
+      <div className={`absolute inset-x-0 bottom-[12px] h-0.5 ${sceneStyle.trackClass}`} />
+      <div className="absolute bottom-0 left-1 origin-bottom-left scale-[0.76]">
+        <TrainEngineArt item={item} compact />
+      </div>
+    </div>
+  )
+}
+
 // Railroad ties evenly spaced across one tile; they scroll with the scenery
 // so the wheels look like they're actually covering ground.
 const SLEEPER_OFFSETS = [3, 14, 25, 36, 47, 58, 69, 80, 91] as const
@@ -448,6 +521,7 @@ function TrainJourneyScene({
   // Five full-width scenes form one long route. The first and last tiles are
   // the same station, so resetting to the start after arrival is invisible.
   // The train never flips; four screen widths of scenery move past it.
+  const sceneStyle = ROUTE_SCENE_STYLES[route.scenery.theme]
   const scrollAnimation = reduceMotion
     ? { x: ['0%', '-4%', '0%'] }
     : { x: ['0%', '-5%', '-75%', '-80%'] }
@@ -467,13 +541,14 @@ function TrainJourneyScene({
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       {/* Sky + ground stay fixed; only the scenery strip scrolls */}
-      <div className="absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-b from-transparent via-emerald-50/60 to-green-200" />
-      <div className="absolute right-6 top-8 h-9 w-9 rounded-full bg-amber-200/80 shadow-[0_0_22px_rgba(253,230,138,0.85)]" />
-      <div className="absolute left-8 top-5 h-6 w-14 rounded-full bg-white/70 blur-[1px]" />
-      <div className="absolute right-16 top-12 h-5 w-11 rounded-full bg-white/60 blur-[1px]" />
+      <div className={`absolute inset-0 bg-gradient-to-b ${sceneStyle.skyClass}`} />
+      <div className={`absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-b ${sceneStyle.groundClass}`} />
+      <span className="absolute right-6 top-7 z-[2] text-3xl drop-shadow-sm">{sceneStyle.orb}</span>
+      <div className="absolute left-8 top-5 h-6 w-14 rounded-full bg-white/55 blur-[1px]" />
+      <div className="absolute right-16 top-12 h-5 w-11 rounded-full bg-white/40 blur-[1px]" />
 
       {/* Continuous rails sit above the scrolling sleepers */}
-      <div className="absolute inset-x-0 bottom-[30px] z-[6] h-[3px] bg-slate-500/70" />
+      <div className={`absolute inset-x-0 bottom-[30px] z-[6] h-[3px] ${sceneStyle.trackClass}`} />
       <div className="absolute inset-x-0 bottom-[24px] z-[6] h-[3px] bg-slate-400/60" />
 
       {/* Four screen widths of distinct scenery, ending at the origin station. */}
@@ -483,11 +558,17 @@ function TrainJourneyScene({
         animate={scrollAnimation}
         transition={scrollTransition}
       >
-        <SceneryTile scene="station" route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile scene="pasture" route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile scene="river" route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile scene="town" route={route} running={running} reduceMotion={reduceMotion} />
-        <SceneryTile scene="station" route={route} running={running} reduceMotion={reduceMotion} />
+        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
+        {route.scenery.waypoints.map((waypoint) => (
+          <SceneryTile
+            key={`${route.id}-${waypoint.label}`}
+            route={route}
+            waypoint={waypoint}
+            running={running}
+            reduceMotion={reduceMotion}
+          />
+        ))}
+        <SceneryTile route={route} running={running} reduceMotion={reduceMotion} />
       </motion.div>
 
       {running && !reduceMotion && (
@@ -534,16 +615,14 @@ function TrainJourneyScene({
   )
 }
 
-type JourneyScene = 'station' | 'pasture' | 'river' | 'town'
-
 function SceneryTile({
-  scene,
   route,
+  waypoint,
   running,
   reduceMotion,
 }: {
-  scene: JourneyScene
   route: TrainRoute
+  waypoint?: RouteWaypoint
   running: boolean
   reduceMotion: boolean
 }) {
@@ -558,7 +637,7 @@ function SceneryTile({
         />
       ))}
 
-      {scene === 'station' && (
+      {!waypoint && (
         <>
           <div className="absolute bottom-[36px] left-[5%] z-[15] flex flex-col items-center">
             <span className="flex max-w-[110px] items-center gap-1 truncate rounded-lg bg-white px-2 py-1 text-[11px] font-extrabold text-sky-800 shadow-md ring-1 ring-sky-100">
@@ -566,57 +645,124 @@ function SceneryTile({
             </span>
             <span className="h-8 w-1.5 bg-slate-500" />
           </div>
-          <span className="absolute bottom-[35px] left-[70%] z-10 text-3xl">🌳</span>
-          <span className="absolute bottom-[32px] left-[88%] z-10 text-xl">🌼</span>
+          <span className="absolute bottom-[37px] left-[68%] z-10 text-3xl drop-shadow-sm">
+            {route.stampEmoji}
+          </span>
+          <span className="absolute bottom-[34px] left-[86%] z-10 text-2xl drop-shadow-sm">
+            {route.cargoEmoji}
+          </span>
         </>
       )}
 
-      {scene === 'pasture' && (
+      {waypoint && (
         <>
-          <div className="absolute bottom-[36px] left-[28%] z-10 flex items-end gap-2 rounded-2xl bg-white/45 px-3 py-1 shadow-sm">
-            <motion.span
-              className="text-3xl"
-              animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
-              transition={{ duration: 0.55, repeat: running ? Infinity : 0 }}
-            >
-              🐄
-            </motion.span>
-            <motion.span
-              className="text-2xl"
-              animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
-              transition={{ duration: 0.5, repeat: running ? Infinity : 0, delay: 0.12 }}
-            >
-              🐑
-            </motion.span>
-          </div>
-          <span className="absolute bottom-[40px] left-[72%] z-10 text-3xl">🌳</span>
-          <span className="absolute bottom-[34px] left-[88%] z-10 text-xl">🌻</span>
-        </>
-      )}
-
-      {scene === 'river' && (
-        <>
-          <span className="absolute bottom-[8px] left-[8%] h-9 w-[84%] rounded-[50%] bg-sky-300/70" />
-          <span className="absolute bottom-[38px] left-[30%] z-10 text-4xl drop-shadow-sm">🌉</span>
-          <span className="absolute bottom-[40px] left-[72%] z-10 text-3xl">🌲</span>
+          <TerrainLayer terrain={waypoint.terrain} />
+          <span className="absolute bottom-[106px] left-[8%] z-[15] rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-extrabold text-slate-700 shadow-md ring-1 ring-white">
+            {waypoint.label}
+          </span>
           <motion.span
-            className="absolute bottom-[10px] left-[68%] text-lg"
-            animate={running && !reduceMotion ? { x: [0, 12, 0] } : { x: 0 }}
-            transition={{ duration: 0.8, repeat: running ? Infinity : 0 }}
+            className="absolute bottom-[37px] left-[38%] z-10 text-5xl drop-shadow-md"
+            animate={running && !reduceMotion ? { y: [0, -3, 0], rotate: [0, -2, 2, 0] } : { y: 0, rotate: 0 }}
+            transition={{ duration: 0.75, repeat: running ? Infinity : 0 }}
           >
-            🦆
+            {waypoint.landmarkEmoji}
           </motion.span>
+          {waypoint.decorations.map((decoration, index) => (
+            <motion.span
+              key={`${waypoint.label}-${decoration}-${index}`}
+              className="absolute bottom-[38px] z-10 text-2xl drop-shadow-sm"
+              style={{ left: `${10 + index * 38}%` }}
+              animate={running && !reduceMotion ? { y: [0, -2, 0] } : { y: 0 }}
+              transition={{ duration: 0.55 + index * 0.1, repeat: running ? Infinity : 0, delay: index * 0.12 }}
+            >
+              {decoration}
+            </motion.span>
+          ))}
         </>
       )}
+    </div>
+  )
+}
 
-      {scene === 'town' && (
-        <>
-          <span className="absolute bottom-[36px] left-[18%] z-10 text-4xl">🏠</span>
-          <span className="absolute bottom-[36px] left-[42%] z-10 text-4xl">🏡</span>
-          <span className="absolute bottom-[38px] left-[70%] z-10 text-3xl">🌳</span>
-          <span className="absolute bottom-[34px] left-[88%] z-10 text-2xl">🚦</span>
-        </>
-      )}
+function TerrainLayer({ terrain }: { terrain: RouteTerrain }) {
+  if (terrain === 'water' || terrain === 'coast') {
+    return (
+      <>
+        <span className="absolute bottom-[7px] left-[5%] h-10 w-[90%] rounded-[50%] bg-sky-400/55" />
+        <span className="absolute bottom-[13px] left-[18%] h-1 w-12 rounded-full bg-white/65" />
+        <span className="absolute bottom-[20px] right-[12%] h-1 w-9 rounded-full bg-white/50" />
+      </>
+    )
+  }
+
+  if (terrain === 'snow') {
+    return (
+      <>
+        <span className="absolute bottom-[23px] left-0 h-8 w-full rounded-[50%] bg-white/80" />
+        <span className="absolute left-[18%] top-[30%] text-sm">❄️</span>
+        <span className="absolute right-[14%] top-[20%] text-xs">❄️</span>
+      </>
+    )
+  }
+
+  if (terrain === 'mountain') {
+    return (
+      <>
+        <span className="absolute bottom-[32px] left-[8%] text-6xl opacity-55">⛰️</span>
+        <span className="absolute bottom-[34px] right-[4%] text-5xl opacity-45">🏔️</span>
+      </>
+    )
+  }
+
+  if (terrain === 'city') {
+    return (
+      <div className="absolute bottom-[34px] right-[4%] flex items-end gap-1 opacity-35">
+        <span className="h-10 w-6 rounded-t bg-slate-500" />
+        <span className="h-16 w-7 rounded-t bg-sky-700" />
+        <span className="h-12 w-8 rounded-t bg-slate-600" />
+      </div>
+    )
+  }
+
+  if (terrain === 'worksite') {
+    return (
+      <span
+        className="absolute bottom-[35px] left-[8%] h-2 w-[84%] rounded-full opacity-50"
+        style={{ backgroundImage: 'repeating-linear-gradient(135deg, #f59e0b 0 8px, #334155 8px 16px)' }}
+      />
+    )
+  }
+
+  if (terrain === 'festival') {
+    return <span className="absolute left-[8%] top-[24%] text-xl tracking-[12px] opacity-80">🎊🎀🎊</span>
+  }
+
+  if (terrain === 'night' || terrain === 'space') {
+    return (
+      <>
+        <span className="absolute left-[15%] top-[22%] text-sm">✨</span>
+        <span className="absolute right-[20%] top-[14%] text-xs">⭐</span>
+        <span className="absolute right-[7%] top-[42%] text-sm">💫</span>
+      </>
+    )
+  }
+
+  if (terrain === 'energy') {
+    return (
+      <>
+        <span className="absolute bottom-[38px] left-[10%] text-4xl opacity-70">♻️</span>
+        <span className="absolute bottom-[40px] right-[8%] text-3xl opacity-70">⚡</span>
+      </>
+    )
+  }
+
+  if (terrain === 'forest') {
+    return <span className="absolute bottom-[34px] left-[6%] text-5xl tracking-5 opacity-45">🌲🌳🌲</span>
+  }
+
+  return (
+    <div className="absolute bottom-[34px] left-[6%] flex w-[88%] justify-between text-3xl opacity-55">
+      <span>🌿</span><span>🌾</span><span>🌼</span>
     </div>
   )
 }

@@ -24,4 +24,14 @@ describe('长期机车收藏目录', () => {
     expect(Math.min(...gaps)).toBeGreaterThanOrEqual(30)
     expect(gaps.every((gap, index) => index === 0 || gap >= gaps[index - 1])).toBe(true)
   })
+
+  it('每辆机车都有独一无二的功能车体，而不只是换颜色', () => {
+    const designs = CARRIAGE_CATALOG.map((item) => item.design)
+
+    expect(new Set(designs).size).toBe(CARRIAGE_CATALOG.length)
+    expect(designs).toContain('snowplow')
+    expect(designs).toContain('maintenance-crane')
+    expect(designs).toContain('electric-loco')
+    expect(designs).toContain('cosmic-rocket')
+  })
 })

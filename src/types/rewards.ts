@@ -19,6 +19,22 @@ export type TrainLivery =
   | 'rose'
   | 'indigo'
 
+export type TrainDesign =
+  | 'city-tank'
+  | 'streamliner'
+  | 'heavy-freight'
+  | 'mail-van'
+  | 'rescue-unit'
+  | 'harbor-shunter'
+  | 'night-sleeper'
+  | 'snowplow'
+  | 'maintenance-crane'
+  | 'festival-special'
+  | 'mountain-climber'
+  | 'electric-loco'
+  | 'panorama-express'
+  | 'cosmic-rocket'
+
 // 一辆可收集、可切换使用的原创机车。
 export interface Carriage {
   id: string
@@ -28,6 +44,7 @@ export interface Carriage {
   personality: string
   description: string
   livery: TrainLivery
+  design: TrainDesign // 按工作场景区分车体轮廓、车轮与功能设备。
   emoji: string // 仅作为功能徽标，机车主体由应用内插画绘制。
   // 解锁所需累计星星（0=初始拥有）
   unlockAtStars: number

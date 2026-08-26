@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   SKILL_META,
+  compatibleSkillTags,
   skillEquations,
   genEquationForSkill,
+  skillMatchesRanges,
 } from './skills'
 import type { SkillTag } from '@/types/math'
 
@@ -68,5 +70,17 @@ describe('难度细分技能生成器', () => {
       expect(ones(e.left)).toBeLessThan(e.right)
       expect(e.result).toBeGreaterThanOrEqual(0)
     }
+  })
+
+  it('专项技能只能用于完全匹配的运算与范围', () => {
+    expect(skillMatchesRanges('add20-carry', ['subtraction-within-20'])).toBe(false)
+    expect(skillMatchesRanges('sub20-borrow', ['subtraction-within-20'])).toBe(true)
+    expect(skillMatchesRanges('sub10-basic', ['subtraction-within-20'])).toBe(false)
+    expect(
+      compatibleSkillTags(
+        ['add20-carry', 'sub10-basic', 'sub20-borrow'],
+        ['subtraction-within-20'],
+      ),
+    ).toEqual(['sub20-borrow'])
   })
 })

@@ -141,7 +141,7 @@ describe('generateQuestions — full set', () => {
     }
   })
 
-  it('mixes operations when only one range is selected', () => {
+  it('只选一个减法范围时只生成该范围的减法', () => {
     const subOnly: PracticeSettings = {
       ...baseSettings,
       selectedRanges: ['subtraction-within-10'],
@@ -152,6 +152,39 @@ describe('generateQuestions — full set', () => {
     for (const q of qs) {
       expect(q.operation).toBe('subtraction')
       expect(q.range).toBe(10)
+    }
+  })
+
+  it('忽略旧设置里与当前减法范围冲突的加法专项', () => {
+    const qs = generateQuestions({
+      ...baseSettings,
+      selectedRanges: ['subtraction-within-20'],
+      selectedPatterns: ['a-minus-b-equals-blank'],
+      questionCount: 20,
+      skillTags: ['add20-carry'],
+    })
+
+    for (const q of qs) {
+      expect(q.operation).toBe('subtraction')
+      expect(q.range).toBe(20)
+      expect(q.pattern).toBe('a-minus-b-equals-blank')
+      expect(q.skill).toBeUndefined()
+    }
+  })
+
+  it('保留与当前范围匹配的减法专项', () => {
+    const qs = generateQuestions({
+      ...baseSettings,
+      selectedRanges: ['subtraction-within-20'],
+      selectedPatterns: ['a-minus-b-equals-blank'],
+      questionCount: 20,
+      skillTags: ['add20-carry', 'sub20-borrow'],
+    })
+
+    for (const q of qs) {
+      expect(q.operation).toBe('subtraction')
+      expect(q.range).toBe(20)
+      expect(q.skill).toBe('sub20-borrow')
     }
   })
 

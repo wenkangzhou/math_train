@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import type { SkillTag } from '@/types/math'
+import type { RangeType, SkillTag } from '@/types/math'
 import {
   SKILLS_BY_GROUP,
   SKILL_GROUP_LABEL,
   SKILL_META,
+  skillMatchesRanges,
   type SkillGroup,
 } from '@/lib/skills'
 import { getDifficultyLabel } from '@/lib/adaptiveDifficulty'
@@ -14,6 +15,7 @@ const SKILL_GROUPS: SkillGroup[] = ['add10', 'sub10', 'add20', 'sub20']
 interface AdvancedSettingsDrawerProps {
   open: boolean
   skillTags: SkillTag[]
+  selectedRanges: RangeType[]
   adaptiveDifficulty: boolean
   allowHarder: boolean
   currentLevel: string
@@ -27,6 +29,7 @@ interface AdvancedSettingsDrawerProps {
 export function AdvancedSettingsDrawer({
   open,
   skillTags,
+  selectedRanges,
   adaptiveDifficulty,
   allowHarder,
   currentLevel,
@@ -129,29 +132,38 @@ export function AdvancedSettingsDrawer({
                   <div className={adaptiveDifficulty ? 'opacity-55' : ''}>
                     <p className="mb-1 text-sm font-extrabold text-slate-600">手动专项技能</p>
                     <p className="mb-3 text-xs font-medium text-slate-400">
-                      {adaptiveDifficulty ? '自动模式开启时暂不使用这些手动选择' : '留空时按上方练习范围正常出题'}
+                      {adaptiveDifficulty
+                        ? '自动模式开启时暂不使用这些手动选择'
+                        : '只可选择与练习范围匹配的专项；切换范围会自动清理旧专项'}
                     </p>
                   </div>
                   {SKILL_GROUPS.map((g) => (
                     <div key={g}>
-                      <p className="mb-2 text-sm font-bold text-slate-600">
-                        {SKILL_GROUP_LABEL[g]}
-                      </p>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-slate-600">
+                          {SKILL_GROUP_LABEL[g]}
+                        </p>
+                        {!SKILLS_BY_GROUP[g].some((tag) => skillMatchesRanges(tag, selectedRanges)) && (
+                          <span className="text-[11px] font-bold text-slate-400">当前未选择此范围</span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {SKILLS_BY_GROUP[g].map((tag) => {
                           const active = skillTags.includes(tag)
+                          const rangeAvailable = skillMatchesRanges(tag, selectedRanges)
+                          const disabled = adaptiveDifficulty || !rangeAvailable
                           return (
                             <button
                               key={tag}
                               type="button"
-                              disabled={adaptiveDifficulty}
+                              disabled={disabled}
                               onClick={() => onToggleSkill(tag)}
                               className={[
                                 'rounded-full border-2 px-3 py-1.5 text-sm font-semibold transition',
                                 active
                                   ? 'border-grass bg-grass/15 text-grass'
                                   : 'border-slate-200 bg-white text-slate-500 hover:border-grass/40',
-                                adaptiveDifficulty ? 'cursor-not-allowed' : '',
+                                disabled ? 'cursor-not-allowed opacity-45' : '',
                               ].join(' ')}
                             >
                               {SKILL_META[tag].label}

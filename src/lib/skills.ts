@@ -2,7 +2,7 @@
 // 每个 SkillTag 对应一个约束化的等式生成器（凑十/破十/进退位等）。
 // 用「枚举所有合法 (a,b) 再随机取」的方式，保证产出一定合法、不死循环。
 
-import type { Operation, SkillTag } from '@/types/math'
+import type { Operation, RangeType, SkillTag } from '@/types/math'
 
 export interface Equation {
   left: number
@@ -122,4 +122,20 @@ export function skillOperation(tag: SkillTag): Operation {
 
 export function skillRange(tag: SkillTag): 10 | 20 {
   return SKILL_META[tag].range
+}
+
+export function skillRangeType(tag: SkillTag): RangeType {
+  const meta = SKILL_META[tag]
+  return `${meta.op === 'addition' ? 'addition' : 'subtraction'}-within-${meta.range}`
+}
+
+export function skillMatchesRanges(tag: SkillTag, ranges: RangeType[]): boolean {
+  return ranges.includes(skillRangeType(tag))
+}
+
+export function compatibleSkillTags(
+  tags: SkillTag[],
+  ranges: RangeType[],
+): SkillTag[] {
+  return tags.filter((tag) => skillMatchesRanges(tag, ranges))
 }

@@ -9,7 +9,12 @@ import type {
   PracticeSettings,
 } from '@/types/math'
 import { VISUAL_THEMES } from './visualTheme'
-import { genEquationForSkill, skillOperation, skillRange } from './skills'
+import {
+  compatibleSkillTags,
+  genEquationForSkill,
+  skillOperation,
+  skillRange,
+} from './skills'
 import { storyText } from './story'
 import { enrichPictureBookQuestion } from './pictureBook'
 
@@ -192,15 +197,16 @@ export interface GenerateOneOptions {
 
 export function generateQuestion(opts: GenerateOneOptions): Question {
   const { ranges, patterns, skillTags, difficulty = 0.5 } = opts
+  const effectiveSkillTags = compatibleSkillTags(skillTags ?? [], ranges)
 
   let op: Operation
   let max: 10 | 20
   let eq: ReturnType<typeof generateEquation>
   let skill: SkillTag | undefined
 
-  if (skillTags && skillTags.length > 0) {
+  if (effectiveSkillTags.length > 0) {
     // 技能模式：先选一个技能，决定运算/范围/约束等式
-    skill = pick(skillTags)
+    skill = pick(effectiveSkillTags)
     op = skillOperation(skill)
     max = skillRange(skill)
     eq = genEquationForSkill(skill)
@@ -261,7 +267,9 @@ export function generateQuestions(
   },
 ): Question[] {
   const { selectedRanges, selectedPatterns, questionCount } = settings
-  const skillTags = settings.skillTags ?? []
+  // 专项技能会决定运算和范围，因此必须先与当前范围取交集。
+  // 这也是对旧存储的防线：残留的加法专项不能覆盖用户新选的减法范围。
+  const skillTags = compatibleSkillTags(settings.skillTags ?? [], selectedRanges)
   const formats: QuestionFormat[] =
     settings.questionFormats && settings.questionFormats.length > 0
       ? settings.questionFormats

@@ -43,6 +43,10 @@ import { PracticeHistoryDrawer } from '@/components/history/PracticeHistoryDrawe
 import { CARRIAGE_CATALOG, getCarriage } from '@/lib/carriages'
 import { getTrainRoute } from '@/lib/trainRoutes'
 import { isReviewDue } from '@/lib/spacedReview'
+import {
+  compatibleSkillTags,
+  skillMatchesRanges,
+} from '@/lib/skills'
 import { setSoundEnabled as setGlobalSoundEnabled } from '@/lib/sound'
 import { cancelSpeech, primeSpeech } from '@/lib/speech'
 
@@ -112,7 +116,10 @@ export function SetupScreen({
     initialSettings.questionFormats ?? ['equation'],
   )
   const [skillTags, setSkillTags] = useState<SkillTag[]>(
-    initialSettings.skillTags ?? [],
+    compatibleSkillTags(
+      initialSettings.skillTags ?? [],
+      initialSettings.selectedRanges,
+    ),
   )
   const [soundEnabled, setSoundEnabled] = useState(
     initialSettings.soundEnabled ?? true,
@@ -157,6 +164,7 @@ export function SetupScreen({
   }
 
   const toggleSkill = (s: SkillTag) => {
+    if (!skillMatchesRanges(s, ranges)) return
     setSkillTags((prev) =>
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
     )
@@ -166,33 +174,33 @@ export function SetupScreen({
   const hasSubtraction = ranges.some((r) => !isAddition(r))
 
   const toggleRange = (value: RangeType) => {
-    setRanges((prev) => {
-      const next = prev.includes(value)
-        ? prev.filter((r) => r !== value)
-        : [...prev, value]
+    const next = ranges.includes(value)
+      ? ranges.filter((range) => range !== value)
+      : [...ranges, value]
+    setRanges(next)
 
-      // 启用某运算但没有对应题型时，自动补上标准题型
-      const nextHasAdd = next.some(isAddition)
-      const nextHasSub = next.some((r) => !isAddition(r))
-      setPatterns((prevPatterns) => {
-        let p = [...prevPatterns]
-        if (
-          nextHasAdd &&
-          !p.some((x) => ADDITION_PATTERNS.includes(x))
-        ) {
-          p.push('a-plus-b-equals-blank')
-        }
-        if (
-          nextHasSub &&
-          !p.some((x) => SUBTRACTION_PATTERNS.includes(x))
-        ) {
-          p.push('a-minus-b-equals-blank')
-        }
-        return p
-      })
-
-      return next
+    // 启用某运算但没有对应题型时，自动补上标准题型。
+    const nextHasAdd = next.some(isAddition)
+    const nextHasSub = next.some((range) => !isAddition(range))
+    setPatterns((currentPatterns) => {
+      const nextPatterns = [...currentPatterns]
+      if (
+        nextHasAdd &&
+        !nextPatterns.some((pattern) => ADDITION_PATTERNS.includes(pattern))
+      ) {
+        nextPatterns.push('a-plus-b-equals-blank')
+      }
+      if (
+        nextHasSub &&
+        !nextPatterns.some((pattern) => SUBTRACTION_PATTERNS.includes(pattern))
+      ) {
+        nextPatterns.push('a-minus-b-equals-blank')
+      }
+      return nextPatterns
     })
+
+    // 专项技能会覆盖普通范围；范围切换后立即移除不再匹配的旧专项。
+    setSkillTags((currentSkills) => compatibleSkillTags(currentSkills, next))
   }
 
   const togglePattern = (value: QuestionPattern) => {
@@ -235,6 +243,7 @@ export function SetupScreen({
     const effectivePatterns = patterns.filter((p) =>
       ADDITION_PATTERNS.includes(p) ? hasAddition : hasSubtraction,
     )
+    const effectiveSkills = compatibleSkillTags(skillTags, ranges)
     onStart({
       selectedRanges: ranges,
       selectedPatterns: effectivePatterns,
@@ -242,7 +251,7 @@ export function SetupScreen({
       autoShowVisualHint,
       showHintAfterWrongAnswer: showHintAfterWrong,
       questionFormats: formats,
-      skillTags,
+      skillTags: effectiveSkills,
       soundEnabled,
       autoReadQuestion,
       autoReadFeedback,
@@ -646,6 +655,7 @@ export function SetupScreen({
       <AdvancedSettingsDrawer
         open={advancedOpen}
         skillTags={skillTags}
+        selectedRanges={ranges}
         adaptiveDifficulty={adaptiveDifficulty}
         allowHarder={allowHarder}
         currentLevel={currentLevel}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lightbulb, RefreshCw, Volume2 } from 'lucide-react'
+import { RefreshCw, Volume2, X } from 'lucide-react'
 import type {
   AnswerRecord,
   PracticeResult,
@@ -26,6 +26,7 @@ import { playCorrect, playWrong, playTap, setSoundEnabled } from '@/lib/sound'
 import { speak, cancelSpeech, questionToSpeech } from '@/lib/speech'
 import {
   alternateHintMethod,
+  canChangeHintMethod,
   objectHintMode,
   recommendedHintMethod,
   type GuidedHintMethod,
@@ -306,6 +307,9 @@ export function PracticeScreen({
   if (!question) return null
 
   const concreteMode = objectHintMode(question)
+  const pictorialSubtractionHelp =
+    showHint === 'tenframe' && question.operation === 'subtraction'
+  const offerAnotherMethod = canChangeHintMethod(question)
   const helpTitle = showHint === 'tenframe'
     ? question.operation === 'addition'
       ? '🔟 凑成十再相加'
@@ -358,7 +362,7 @@ export function PracticeScreen({
               <HintTab
                 active={showHint !== 'none'}
                 onClick={toggleHelp}
-                icon={<Lightbulb size={19} />}
+                icon={<span className="text-xl" aria-hidden="true">👋</span>}
                 label="帮帮我"
                 expanded={showHint !== 'none'}
                 controls="learning-helper-panel"
@@ -394,24 +398,37 @@ export function PracticeScreen({
                   data-hint-method={showHint}
                   className="relative z-20 mt-3 max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-100 ipad-land:absolute ipad-land:bottom-full ipad-land:left-0 ipad-land:right-0 ipad-land:mb-3 ipad-land:mt-0 ipad-land:max-h-[400px] ipad-land:p-2"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3 px-1 ipad-land:mb-1">
-                    <div className="min-w-0">
-                      <p className="text-sm font-extrabold text-slate-600 sm:text-base">
-                        {helpTitle}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-400">
-                        跟着 1、2、3 做，再去下面选答案
-                      </p>
-                    </div>
+                  {pictorialSubtractionHelp ? (
                     <button
                       type="button"
-                      onClick={changeHelpMethod}
-                      className="flex min-h-9 shrink-0 items-center gap-1 rounded-full bg-sky-50 px-3 text-xs font-extrabold text-sky-deep ring-1 ring-sky-100 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/30"
+                      onClick={toggleHelp}
+                      aria-label="关闭帮帮我"
+                      className="absolute right-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100/95 text-slate-400 shadow-sm transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
                     >
-                      <RefreshCw size={14} />
-                      换个方法
+                      <X size={19} aria-hidden="true" />
                     </button>
-                  </div>
+                  ) : (
+                    <div className="mb-2 flex items-center justify-between gap-3 px-1 ipad-land:mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-extrabold text-slate-600 sm:text-base">
+                          {helpTitle}
+                        </p>
+                        <p className="text-xs font-semibold text-slate-400">
+                          跟着 1、2、3 做，再去下面选答案
+                        </p>
+                      </div>
+                      {offerAnotherMethod && (
+                        <button
+                          type="button"
+                          onClick={changeHelpMethod}
+                          className="flex min-h-9 shrink-0 items-center gap-1 rounded-full bg-sky-50 px-3 text-xs font-extrabold text-sky-deep ring-1 ring-sky-100 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky/30"
+                        >
+                          <RefreshCw size={14} aria-hidden="true" />
+                          换个方法
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {showHint === 'objects' && concreteMode === 'picture' && (
                     <VisualHint key={question.id} question={question} level={hintLevel} />
                   )}

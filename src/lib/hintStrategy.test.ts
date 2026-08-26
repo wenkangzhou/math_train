@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Question } from '@/types/math'
 import {
   alternateHintMethod,
+  canChangeHintMethod,
   objectHintMode,
   recommendedHintMethod,
 } from './hintStrategy'
@@ -69,6 +70,7 @@ describe('儿童辅助推荐', () => {
     }
 
     expect(recommendedHintMethod(subtraction, 0)).toBe('tenframe')
+    expect(canChangeHintMethod(subtraction)).toBe(false)
     expect(alternateHintMethod('tenframe', subtraction)).toBe('numberline')
     expect(alternateHintMethod('numberline', subtraction)).toBe('tenframe')
   })
@@ -93,6 +95,7 @@ describe('儿童辅助推荐', () => {
   })
 
   it('换个方法只在具体物品与数轴之间切换', () => {
+    expect(canChangeHintMethod(addition)).toBe(true)
     expect(alternateHintMethod('objects')).toBe('numberline')
     expect(alternateHintMethod('numberline')).toBe('objects')
   })

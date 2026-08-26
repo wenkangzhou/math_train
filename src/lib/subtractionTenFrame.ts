@@ -35,7 +35,7 @@ export function supportsSubtractionTenFrame(question: Question): boolean {
     question.range === 20 &&
     (question.pattern === 'a-minus-b-equals-blank' ||
       question.pattern === 'a-minus-blank-equals-c') &&
-    question.fullLeft > 10 &&
+    question.fullLeft > 0 &&
     question.fullLeft <= 20
   )
 }
@@ -95,6 +95,32 @@ export function createSubtractionTenFramePlan(
         extra > 0 ? `再拿走 ${extra}` : '数一数剩下的',
       ],
       steps,
+    }
+  }
+
+  if (start <= 10) {
+    return {
+      strategy: 'take-ones',
+      start,
+      remove,
+      remain,
+      firstGroupCount,
+      secondGroupCount,
+      intro: `先摆出 ${start} 个，再拿走 ${remove} 个。`,
+      done,
+      childSteps: [
+        `摆出 ${start} 个`,
+        `拿走 ${remove} 个`,
+        `数一数剩下的`,
+      ],
+      steps: [
+        {
+          amount: remove,
+          action: `拿走 ${remove} 个`,
+          equation: `${start} − ${remove} = ${remain}`,
+          removeIndexes: indexes(0, remove),
+        },
+      ],
     }
   }
 

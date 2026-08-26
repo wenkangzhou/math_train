@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { RotateCcw } from 'lucide-react'
 import type { Question } from '@/types/math'
-import { KidSteps } from '@/components/common/KidSteps'
+import { playTap } from '@/lib/sound'
 import { themeEmoji } from '@/lib/visualTheme'
 import {
   createSubtractionTenFramePlan,
@@ -16,41 +17,56 @@ interface SubtractionTenFrameHintProps {
 function TenFrame({
   startIndex,
   filledCount,
-  label,
   emoji,
   removed,
-  celebrate,
+  remainingOrder,
+  done,
 }: {
   startIndex: number
   filledCount: number
-  label: string
   emoji: string
   removed: Set<number>
-  celebrate: boolean
+  remainingOrder: Map<number, number>
+  done: boolean
 }) {
   const reduce = useReducedMotion()
 
   return (
-    <div className="rounded-[22px] border-2 border-sky-100 bg-sky-50/70 p-2 shadow-sm">
-      <p className="mb-1 text-center text-xs font-extrabold text-sky-deep sm:text-sm ipad-land:text-xs">
-        {label}
-      </p>
+    <div
+      className="rounded-[22px] border-2 border-sky-100 bg-sky-50/75 p-2 shadow-sm"
+      aria-label={`${filledCount} 个物品`}
+    >
+      <div className="mb-1 flex h-7 items-center justify-center gap-1.5" aria-hidden="true">
+        {filledCount === 10 ? (
+          <span className="grid grid-cols-5 gap-0.5 rounded-md bg-sky-100 p-1">
+            {Array.from({ length: 10 }, (_, index) => (
+              <span key={index} className="h-1.5 w-1.5 rounded-[2px] bg-sky-deep" />
+            ))}
+          </span>
+        ) : (
+          <span className="h-4 w-4 rounded-full bg-amber-300 ring-2 ring-amber-100" />
+        )}
+        <span className="font-digit text-xl font-black text-sky-deep">{filledCount}</span>
+      </div>
       <div className="grid grid-cols-5 gap-1.5 ipad-land:gap-1">
         {Array.from({ length: 10 }, (_, offset) => {
           const itemIndex = startIndex + offset
           const filled = offset < filledCount
           const isRemoved = filled && removed.has(itemIndex)
+          const countOrder = remainingOrder.get(itemIndex)
 
           return (
             <div
               key={itemIndex}
               className={[
-                'relative flex h-10 items-center justify-center overflow-hidden rounded-xl border sm:h-11 ipad-land:h-8',
+                'relative flex h-11 items-center justify-center overflow-hidden rounded-xl border-2 transition-colors duration-300 sm:h-12 ipad-land:h-9',
                 filled
                   ? isRemoved
-                    ? 'border-coral/20 bg-coral/5'
-                    : 'border-grass/40 bg-white'
-                  : 'border-dashed border-slate-200 bg-white/35',
+                    ? 'border-coral/30 bg-coral/10'
+                    : done
+                      ? 'border-grass bg-emerald-50'
+                      : 'border-grass/35 bg-white'
+                  : 'border-dashed border-slate-200 bg-white/30',
               ].join(' ')}
             >
               {filled && (
@@ -58,15 +74,19 @@ function TenFrame({
                   initial={false}
                   animate={
                     isRemoved
-                      ? { opacity: 0.25, filter: 'grayscale(1)', scale: 0.88 }
+                      ? { opacity: 0.18, filter: 'grayscale(1)', scale: 0.72, y: 5 }
                       : {
                           opacity: 1,
                           filter: 'grayscale(0)',
-                          scale: celebrate && !reduce ? [1, 1.12, 1] : 1,
+                          scale: done && !reduce ? [1, 1.18, 1] : 1,
+                          y: 0,
                         }
                   }
-                  transition={{ duration: 0.3 }}
-                  className="text-xl sm:text-2xl ipad-land:text-lg"
+                  transition={{
+                    duration: 0.32,
+                    delay: reduce ? 0 : offset * 0.035,
+                  }}
+                  className="text-2xl sm:text-[28px] ipad-land:text-xl"
                   aria-hidden="true"
                 >
                   {emoji}
@@ -74,11 +94,25 @@ function TenFrame({
               )}
               {isRemoved && (
                 <motion.span
-                  initial={{ opacity: 0, scaleX: 0 }}
-                  animate={{ opacity: 1, scaleX: 1 }}
-                  className="absolute h-0.5 w-8 rotate-[-28deg] rounded-full bg-coral sm:w-9 ipad-land:w-7"
+                  initial={{ opacity: 0, scale: 0.4, rotate: -18 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ delay: reduce ? 0 : offset * 0.035 }}
+                  className="absolute text-2xl font-black text-coral ipad-land:text-xl"
                   aria-hidden="true"
-                />
+                >
+                  ×
+                </motion.span>
+              )}
+              {done && countOrder !== undefined && (
+                <motion.span
+                  initial={reduce ? false : { opacity: 0, scale: 0.4 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: reduce ? 0 : countOrder * 0.06 }}
+                  className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-grass px-1 font-digit text-[11px] font-black text-white shadow-sm"
+                  aria-hidden="true"
+                >
+                  {countOrder}
+                </motion.span>
               )}
             </div>
           )
@@ -88,9 +122,26 @@ function TenFrame({
   )
 }
 
+function equationStart(question: Question): number | '?' {
+  return question.pattern === 'blank-minus-b-equals-c' ? '?' : question.fullLeft
+}
+
+function equationRemove(question: Question, done: boolean): number | '?' {
+  return question.pattern === 'a-minus-blank-equals-c' && !done
+    ? '?'
+    : question.fullRight
+}
+
+function equationRemain(question: Question, done: boolean): number | '?' {
+  return question.pattern === 'a-minus-b-equals-blank' && !done
+    ? '?'
+    : question.fullResult
+}
+
 export function SubtractionTenFrameHint({
   question,
 }: SubtractionTenFrameHintProps) {
+  const reduce = useReducedMotion()
   const plan = useMemo(
     () => createSubtractionTenFramePlan(question),
     [question],
@@ -98,99 +149,178 @@ export function SubtractionTenFrameHint({
   const emoji = themeEmoji(question.visualTheme)
   const [completedSteps, setCompletedSteps] = useState(0)
 
-  useEffect(() => {
-    setCompletedSteps(0)
-  }, [question.id])
-
   const removed = useMemo(
     () => new Set(removedIndexesAfterStep(plan, completedSteps)),
     [completedSteps, plan],
   )
   const done = completedSteps >= plan.steps.length
-  const lastStep = completedSteps > 0 ? plan.steps[completedSteps - 1] : null
   const nextStep = done ? null : plan.steps[completedSteps]
   const remaining = remainingAfterStep(plan, completedSteps)
-  const doneButtonLabel =
-    question.pattern === 'a-minus-blank-equals-c'
-      ? `看见啦，拿走 ${plan.remove} 个`
-      : `看见啦，还剩 ${plan.remain} 个`
+  const remainingOrder = useMemo(() => {
+    const order = new Map<number, number>()
+    if (!done) return order
+    let count = 0
+    for (let itemIndex = 0; itemIndex < plan.start; itemIndex += 1) {
+      if (!removed.has(itemIndex)) {
+        count += 1
+        order.set(itemIndex, count)
+      }
+    }
+    return order
+  }, [done, plan.start, removed])
+
+  const removedCount = removed.size
+  const answer = question.pattern === 'a-minus-blank-equals-c'
+    ? plan.remove
+    : plan.remain
+  const answerIsRemoved = question.pattern === 'a-minus-blank-equals-c'
+  const actionExpression = nextStep
+    ? nextStep.amount > 0
+      ? `− ${nextStep.amount}`
+      : nextStep.equation.split('=')[0]?.trim()
+    : `= ${answer}`
+
+  const advance = () => {
+    if (done) return
+    playTap()
+    setCompletedSteps((step) => Math.min(plan.steps.length, step + 1))
+  }
+
+  const reset = () => {
+    playTap()
+    setCompletedSteps(0)
+  }
 
   return (
     <div
-      className="rounded-card bg-white/90 p-3 shadow-soft ipad-land:p-2"
+      className="rounded-[26px] bg-white/95 p-3 shadow-soft ipad-land:p-2.5"
       data-testid="subtraction-ten-frame"
     >
-      <KidSteps steps={plan.childSteps} />
-
-      <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5 text-sm font-extrabold text-slate-600 ipad-land:mb-1 ipad-land:text-xs">
-        <span className="rounded-full bg-sky-50 px-3 py-1 text-sky-deep">
-          {plan.start}
+      <div
+        className="mb-2 flex items-center justify-center gap-2 font-digit font-black ipad-land:mb-1.5"
+        aria-label={`${question.left ?? '多少'} 减 ${question.right ?? '多少'} 等于 ${question.result ?? '多少'}`}
+      >
+        <span className="flex min-w-12 items-center justify-center rounded-2xl bg-sky-50 px-3 py-1.5 text-2xl text-sky-deep ring-2 ring-sky-100 ipad-land:text-xl">
+          {equationStart(question)}
         </span>
-        <span>=</span>
-        <span className="rounded-full bg-white px-3 py-1 ring-1 ring-sky-100">10</span>
-        <span>+</span>
-        <span className="rounded-full bg-white px-3 py-1 ring-1 ring-sky-100">
-          {plan.secondGroupCount}
+        <span className="text-3xl text-coral ipad-land:text-2xl">−</span>
+        <span
+          className={[
+            'flex min-w-12 items-center justify-center rounded-2xl px-3 py-1.5 text-2xl ring-2 ipad-land:text-xl',
+            answerIsRemoved
+              ? done
+                ? 'bg-grass text-white ring-grass/30'
+                : 'bg-white text-sky ring-dashed ring-sky/60'
+              : 'bg-coral/10 text-coral ring-coral/20',
+          ].join(' ')}
+        >
+          {equationRemove(question, done)}
         </span>
+        <span className="text-2xl text-slate-300">=</span>
+        <motion.span
+          initial={false}
+          animate={done && !reduce ? { scale: [0.75, 1.2, 1] } : { scale: 1 }}
+          className={[
+            'flex min-w-14 items-center justify-center rounded-2xl px-3 py-1.5 text-3xl ring-2 ipad-land:text-2xl',
+            answerIsRemoved
+              ? 'bg-sky-50 text-sky-deep ring-sky-100'
+              : done
+                ? 'bg-grass text-white ring-grass/30'
+                : 'bg-white text-sky ring-dashed ring-sky/60',
+          ].join(' ')}
+        >
+          {equationRemain(question, done)}
+        </motion.span>
       </div>
 
-      <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2 ipad-land:gap-3">
+      <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2.5 ipad-land:gap-3">
         <TenFrame
           startIndex={0}
           filledCount={plan.firstGroupCount}
-          label="一整组 · 10 个"
           emoji={emoji}
           removed={removed}
-          celebrate={done}
+          remainingOrder={remainingOrder}
+          done={done}
         />
         <TenFrame
           startIndex={10}
           filledCount={plan.secondGroupCount}
-          label={`个位组 · ${plan.secondGroupCount} 个`}
           emoji={emoji}
           removed={removed}
-          celebrate={done}
+          remainingOrder={remainingOrder}
+          done={done}
         />
       </div>
 
-      <div
-        className="mt-2 rounded-2xl bg-cream px-3 py-2 text-center ipad-land:mt-1.5 ipad-land:py-1.5"
-        role="status"
-        aria-live="polite"
-      >
-        <p className="text-sm font-extrabold text-slate-700 sm:text-base ipad-land:text-sm">
-          {lastStep ? lastStep.equation : plan.intro}
-        </p>
-        <p className="mt-0.5 text-xs font-bold text-slate-500 sm:text-sm ipad-land:text-xs">
-          {done ? plan.done : `现在还有 ${remaining} 个彩色图案。`}
-        </p>
+      <div className="mt-2 flex items-center justify-center gap-2 ipad-land:mt-1.5">
+        <span
+          className="flex min-h-9 min-w-20 items-center justify-center gap-1 rounded-2xl bg-coral/10 px-3 font-digit text-lg font-black text-coral"
+          aria-label={`已经拿走 ${removedCount} 个`}
+        >
+          <span aria-hidden="true">👋</span>
+          <span aria-hidden="true">×</span>
+          {removedCount}
+        </span>
+        <span
+          className={[
+            'flex min-h-9 min-w-20 items-center justify-center gap-1 rounded-2xl px-3 font-digit text-lg font-black transition-colors',
+            done ? 'bg-grass/15 text-emerald-700' : 'bg-sky-50 text-sky-deep',
+          ].join(' ')}
+          aria-label={`现在剩下 ${remaining} 个`}
+        >
+          <span aria-hidden="true">👀</span>
+          <span aria-hidden="true">=</span>
+          {remaining}
+        </span>
       </div>
 
       <div className="mt-2 flex items-center justify-center gap-2 ipad-land:mt-1.5">
-        <button
+        <motion.button
           type="button"
-          onClick={() =>
-            setCompletedSteps((step) => Math.min(plan.steps.length, step + 1))
-          }
+          onClick={advance}
           disabled={done}
-          className="min-h-10 rounded-full bg-sky px-5 py-2 text-sm font-extrabold text-white shadow-soft transition enabled:hover:brightness-105 disabled:bg-grass sm:text-base ipad-land:min-h-9 ipad-land:py-1.5 ipad-land:text-sm"
+          whileTap={reduce ? undefined : { scale: 0.96 }}
+          aria-label={nextStep?.action ?? `答案是 ${answer}`}
+          className={[
+            'relative flex min-h-14 min-w-44 items-center justify-center gap-3 overflow-hidden rounded-[22px] px-6 font-digit text-2xl font-black text-white shadow-soft focus:outline-none focus-visible:ring-4 ipad-land:min-h-12 ipad-land:text-xl',
+            done
+              ? 'bg-grass focus-visible:ring-grass/30'
+              : 'bg-coral focus-visible:ring-coral/30',
+          ].join(' ')}
         >
-          {done ? doneButtonLabel : nextStep?.action}
-        </button>
+          {!done && (
+            <motion.span
+              aria-hidden="true"
+              animate={reduce ? undefined : { y: [0, -5, 0], rotate: [0, -8, 0] }}
+              transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 0.35 }}
+              className="text-2xl"
+            >
+              👆
+            </motion.span>
+          )}
+          <span aria-hidden="true">{actionExpression}</span>
+          {!done && <span aria-hidden="true" className="text-lg">▶</span>}
+        </motion.button>
+
         {completedSteps > 0 && (
           <button
             type="button"
-            onClick={() => setCompletedSteps(0)}
-            className="min-h-10 rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-200 ipad-land:min-h-9 ipad-land:py-1.5 ipad-land:text-xs"
+            onClick={reset}
+            aria-label="重新演示"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
           >
-            重来
+            <RotateCcw size={20} aria-hidden="true" />
           </button>
         )}
       </div>
 
-      <p className="mt-1 text-center text-[11px] font-semibold text-slate-400 ipad-land:text-[10px]">
-        彩色的是留下的，灰色划线的是拿走的。
-      </p>
+      <div className="sr-only" role="status" aria-live="polite">
+        {done
+          ? plan.done
+          : nextStep
+            ? `${nextStep.action}。现在剩下 ${remaining} 个。`
+            : plan.intro}
+      </div>
     </div>
   )
 }

@@ -28,6 +28,11 @@ export function objectHintMode(question: Question): ObjectHintMode {
     : 'manipulative'
 }
 
+// 20 以内减法对刚入门的孩子只保留一个稳定模型，避免在十格图和数轴之间切换。
+export function canChangeHintMethod(question: Question): boolean {
+  return !supportsSubtractionTenFrame(question)
+}
+
 export function alternateHintMethod(
   current: GuidedHintMethod,
   question?: Question,

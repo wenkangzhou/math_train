@@ -83,6 +83,18 @@ describe('20以内减法十格图', () => {
     expect(remainingAfterStep(plan, plan.steps.length)).toBe(14)
   })
 
+  it('20以内范围出现9-4时仍使用同一套拿走模型', () => {
+    const question = subtraction(9, 4)
+    const plan = createSubtractionTenFramePlan(question)
+
+    expect(supportsSubtractionTenFrame(question)).toBe(true)
+    expect(plan.firstGroupCount).toBe(9)
+    expect(plan.secondGroupCount).toBe(0)
+    expect(plan.steps.map((step) => step.equation)).toEqual(['9 − 4 = 5'])
+    expect(removedIndexesAfterStep(plan, 1)).toEqual([0, 1, 2, 3])
+    expect(remainingAfterStep(plan, 1)).toBe(5)
+  })
+
   it('支持求差和求减数，不把求被减数题硬套进拿走模型', () => {
     expect(supportsSubtractionTenFrame(subtraction(19, 11))).toBe(true)
     expect(

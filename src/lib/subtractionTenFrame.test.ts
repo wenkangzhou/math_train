@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Question, QuestionPattern } from '@/types/math'
 import {
+  completedStepsAfterAction,
   createSubtractionTenFramePlan,
   remainingAfterStep,
+  removalTargetGroup,
   removedIndexesAfterStep,
   supportsSubtractionTenFrame,
 } from './subtractionTenFrame'
@@ -47,6 +49,9 @@ describe('20以内减法十格图', () => {
     expect(remainingAfterStep(plan, 1)).toBe(9)
     expect(remainingAfterStep(plan, 2)).toBe(8)
     expect(removedIndexesAfterStep(plan, 2)).toHaveLength(11)
+    expect(plan.steps.map(removalTargetGroup)).toEqual(['first', 'second'])
+    expect(completedStepsAfterAction(plan, 0)).toBe(1)
+    expect(completedStepsAfterAction(plan, 1)).toBe(2)
   })
 
   it('13-8 使用破十法：10-8 后再和3合起来', () => {
@@ -61,6 +66,8 @@ describe('20以内减法十格图', () => {
     expect(removedIndexesAfterStep(plan, plan.steps.length)).toEqual([
       0, 1, 2, 3, 4, 5, 6, 7,
     ])
+    expect(removalTargetGroup(plan.steps[0])).toBe('first')
+    expect(completedStepsAfterAction(plan, 0)).toBe(plan.steps.length)
   })
 
   it('17-5 只从个位组拿走，完整的10保持不动', () => {
@@ -72,6 +79,8 @@ describe('20以内减法十格图', () => {
       '7 − 5 = 2',
       '10 + 2 = 12',
     ])
+    expect(removalTargetGroup(plan.steps[0])).toBe('second')
+    expect(completedStepsAfterAction(plan, 0)).toBe(plan.steps.length)
   })
 
   it('20-6 从第二个完整十格里拿走6个', () => {

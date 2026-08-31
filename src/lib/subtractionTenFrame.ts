@@ -25,6 +25,8 @@ export interface SubtractionTenFramePlan {
   steps: SubtractionRemovalStep[]
 }
 
+export type SubtractionFrameGroup = 'first' | 'second'
+
 function indexes(start: number, count: number): number[] {
   return Array.from({ length: Math.max(0, count) }, (_, index) => start + index)
 }
@@ -213,4 +215,24 @@ export function remainingAfterStep(
     .slice(0, completedSteps)
     .reduce((total, step) => total + step.amount, 0)
   return plan.start - removed
+}
+
+export function removalTargetGroup(
+  step: SubtractionRemovalStep | null | undefined,
+): SubtractionFrameGroup | null {
+  const firstIndex = step?.removeIndexes[0]
+  if (firstIndex === undefined) return null
+  return firstIndex >= 10 ? 'second' : 'first'
+}
+
+// “合起来”不再要求孩子额外点击：完成真正的拿走动作后，直接显示剩余物品。
+export function completedStepsAfterAction(
+  plan: SubtractionTenFramePlan,
+  completedSteps: number,
+): number {
+  let next = Math.min(plan.steps.length, completedSteps + 1)
+  while (next < plan.steps.length && plan.steps[next]?.amount === 0) {
+    next += 1
+  }
+  return next
 }

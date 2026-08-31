@@ -5,8 +5,10 @@ import type { Question } from '@/types/math'
 import { playTap } from '@/lib/sound'
 import { themeEmoji } from '@/lib/visualTheme'
 import {
+  completedStepsAfterAction,
   createSubtractionTenFramePlan,
   remainingAfterStep,
+  removalTargetGroup,
   removedIndexesAfterStep,
 } from '@/lib/subtractionTenFrame'
 
@@ -19,6 +21,7 @@ function TenFrame({
   filledCount,
   emoji,
   removed,
+  pendingRemoval,
   remainingOrder,
   done,
 }: {
@@ -26,6 +29,7 @@ function TenFrame({
   filledCount: number
   emoji: string
   removed: Set<number>
+  pendingRemoval: Set<number>
   remainingOrder: Map<number, number>
   done: boolean
 }) {
@@ -53,6 +57,7 @@ function TenFrame({
           const itemIndex = startIndex + offset
           const filled = offset < filledCount
           const isRemoved = filled && removed.has(itemIndex)
+          const isPending = filled && pendingRemoval.has(itemIndex)
           const countOrder = remainingOrder.get(itemIndex)
 
           return (
@@ -63,6 +68,8 @@ function TenFrame({
                 filled
                   ? isRemoved
                     ? 'border-coral/30 bg-coral/10'
+                    : isPending
+                      ? 'border-coral bg-orange-50 ring-2 ring-coral/25'
                     : done
                       ? 'border-grass bg-emerald-50'
                       : 'border-grass/35 bg-white'
@@ -78,13 +85,19 @@ function TenFrame({
                       : {
                           opacity: 1,
                           filter: 'grayscale(0)',
-                          scale: done && !reduce ? [1, 1.18, 1] : 1,
+                          scale: isPending && !reduce
+                            ? [1, 1.12, 1]
+                            : done && !reduce
+                              ? [1, 1.18, 1]
+                              : 1,
                           y: 0,
                         }
                   }
                   transition={{
                     duration: 0.32,
                     delay: reduce ? 0 : offset * 0.035,
+                    repeat: isPending && !reduce ? Infinity : 0,
+                    repeatDelay: isPending && !reduce ? 0.45 : 0,
                   }}
                   className="text-2xl sm:text-[28px] ipad-land:text-xl"
                   aria-hidden="true"
@@ -102,6 +115,14 @@ function TenFrame({
                 >
                   ×
                 </motion.span>
+              )}
+              {isPending && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-coral font-digit text-sm font-black text-white shadow-sm"
+                  aria-hidden="true"
+                >
+                  −
+                </span>
               )}
               {done && countOrder !== undefined && (
                 <motion.span
@@ -138,6 +159,39 @@ function equationRemain(question: Question, done: boolean): number | '?' {
     : question.fullResult
 }
 
+function RemovalButton({
+  expression,
+  action,
+  onClick,
+  reduceMotion,
+}: {
+  expression: string
+  action: string
+  onClick: () => void
+  reduceMotion: boolean
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+      aria-label={action}
+      className="flex min-h-14 w-full items-center justify-center gap-3 rounded-[22px] bg-coral px-4 font-digit text-2xl font-black text-white shadow-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-coral/30 ipad-land:min-h-12 ipad-land:text-xl"
+    >
+      <motion.span
+        aria-hidden="true"
+        animate={reduceMotion ? undefined : { y: [-4, 5, -4] }}
+        transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 0.3 }}
+        className="text-3xl leading-none ipad-land:text-2xl"
+      >
+        ↓
+      </motion.span>
+      <span aria-hidden="true">{expression}</span>
+      <span aria-hidden="true" className="text-lg">▶</span>
+    </motion.button>
+  )
+}
+
 export function SubtractionTenFrameHint({
   question,
 }: SubtractionTenFrameHintProps) {
@@ -153,8 +207,13 @@ export function SubtractionTenFrameHint({
     () => new Set(removedIndexesAfterStep(plan, completedSteps)),
     [completedSteps, plan],
   )
-  const done = completedSteps >= plan.steps.length
+  const done = plan.remove === 0 || completedSteps >= plan.steps.length
   const nextStep = done ? null : plan.steps[completedSteps]
+  const pendingRemoval = useMemo(
+    () => new Set(nextStep?.removeIndexes ?? []),
+    [nextStep],
+  )
+  const targetGroup = removalTargetGroup(nextStep)
   const remaining = remainingAfterStep(plan, completedSteps)
   const remainingOrder = useMemo(() => {
     const order = new Map<number, number>()
@@ -169,21 +228,18 @@ export function SubtractionTenFrameHint({
     return order
   }, [done, plan.start, removed])
 
-  const removedCount = removed.size
   const answer = question.pattern === 'a-minus-blank-equals-c'
     ? plan.remove
     : plan.remain
   const answerIsRemoved = question.pattern === 'a-minus-blank-equals-c'
   const actionExpression = nextStep
-    ? nextStep.amount > 0
-      ? `− ${nextStep.amount}`
-      : nextStep.equation.split('=')[0]?.trim()
+    ? `− ${nextStep.amount}`
     : `= ${answer}`
 
   const advance = () => {
     if (done) return
     playTap()
-    setCompletedSteps((step) => Math.min(plan.steps.length, step + 1))
+    setCompletedSteps((step) => completedStepsAfterAction(plan, step))
   }
 
   const reset = () => {
@@ -239,6 +295,7 @@ export function SubtractionTenFrameHint({
           filledCount={plan.firstGroupCount}
           emoji={emoji}
           removed={removed}
+          pendingRemoval={pendingRemoval}
           remainingOrder={remainingOrder}
           done={done}
         />
@@ -247,70 +304,53 @@ export function SubtractionTenFrameHint({
           filledCount={plan.secondGroupCount}
           emoji={emoji}
           removed={removed}
+          pendingRemoval={pendingRemoval}
           remainingOrder={remainingOrder}
           done={done}
         />
       </div>
 
-      <div className="mt-2 flex items-center justify-center gap-2 ipad-land:mt-1.5">
-        <span
-          className="flex min-h-9 min-w-20 items-center justify-center gap-1 rounded-2xl bg-coral/10 px-3 font-digit text-lg font-black text-coral"
-          aria-label={`已经拿走 ${removedCount} 个`}
-        >
-          <span aria-hidden="true">👋</span>
-          <span aria-hidden="true">×</span>
-          {removedCount}
-        </span>
-        <span
-          className={[
-            'flex min-h-9 min-w-20 items-center justify-center gap-1 rounded-2xl px-3 font-digit text-lg font-black transition-colors',
-            done ? 'bg-grass/15 text-emerald-700' : 'bg-sky-50 text-sky-deep',
-          ].join(' ')}
-          aria-label={`现在剩下 ${remaining} 个`}
-        >
-          <span aria-hidden="true">👀</span>
-          <span aria-hidden="true">=</span>
-          {remaining}
-        </span>
-      </div>
-
-      <div className="mt-2 flex items-center justify-center gap-2 ipad-land:mt-1.5">
-        <motion.button
-          type="button"
-          onClick={advance}
-          disabled={done}
-          whileTap={reduce ? undefined : { scale: 0.96 }}
-          aria-label={nextStep?.action ?? `答案是 ${answer}`}
-          className={[
-            'relative flex min-h-14 min-w-44 items-center justify-center gap-3 overflow-hidden rounded-[22px] px-6 font-digit text-2xl font-black text-white shadow-soft focus:outline-none focus-visible:ring-4 ipad-land:min-h-12 ipad-land:text-xl',
-            done
-              ? 'bg-grass focus-visible:ring-grass/30'
-              : 'bg-coral focus-visible:ring-coral/30',
-          ].join(' ')}
-        >
-          {!done && (
-            <motion.span
-              aria-hidden="true"
-              animate={reduce ? undefined : { y: [0, -5, 0], rotate: [0, -8, 0] }}
-              transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 0.35 }}
-              className="text-2xl"
+      <div className="mx-auto mt-2 grid max-w-2xl grid-cols-2 gap-2.5 ipad-land:mt-1.5 ipad-land:gap-3">
+        {done ? (
+          <div className="col-span-2 flex items-center justify-center gap-2">
+            <div
+              aria-label={`答案是 ${answer}`}
+              className="flex min-h-12 min-w-44 items-center justify-center rounded-[22px] bg-grass px-6 font-digit text-2xl font-black text-white shadow-soft ipad-land:min-h-11 ipad-land:text-xl"
             >
-              👆
-            </motion.span>
-          )}
-          <span aria-hidden="true">{actionExpression}</span>
-          {!done && <span aria-hidden="true" className="text-lg">▶</span>}
-        </motion.button>
-
-        {completedSteps > 0 && (
-          <button
-            type="button"
-            onClick={reset}
-            aria-label="重新演示"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
-          >
-            <RotateCcw size={20} aria-hidden="true" />
-          </button>
+              = {answer}
+            </div>
+            <button
+              type="button"
+              onClick={reset}
+              aria-label="重新演示"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 ipad-land:h-11 ipad-land:w-11"
+            >
+              <RotateCcw size={20} aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <>
+            {targetGroup === 'first' ? (
+              <RemovalButton
+                expression={actionExpression}
+                action={nextStep?.action ?? ''}
+                onClick={advance}
+                reduceMotion={Boolean(reduce)}
+              />
+            ) : (
+              <div />
+            )}
+            {targetGroup === 'second' ? (
+              <RemovalButton
+                expression={actionExpression}
+                action={nextStep?.action ?? ''}
+                onClick={advance}
+                reduceMotion={Boolean(reduce)}
+              />
+            ) : (
+              <div />
+            )}
+          </>
         )}
       </div>
 

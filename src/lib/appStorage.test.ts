@@ -97,6 +97,7 @@ describe('normalizeAppStorage 防御', () => {
     expect(s.settingsByProfile['p1']).toBeDefined()
     expect(s.rewardsByProfile['p1']).toBeDefined()
     expect(s.historyByProfile['p1']).toEqual([])
+    expect(s.profiles[0].subtractionStage).toBe('take-ones')
     // activeProfileId 非法 → 回退到第一个档案
     expect(s.activeProfileId).toBe('p1')
   })
@@ -265,6 +266,37 @@ describe('练习结算、奖励与长期错题', () => {
     })
     expect(storage.profiles[0].currentLevel).toBe('within10-missing')
     expect(reviewUpdate.difficultyChange).toBeNull()
+  })
+
+  it('20以内减法连续两趟稳定完成后进入下一关', () => {
+    const storage = createFreshStorage()
+    const pid = storage.profiles[0].id
+    const routeSettings = {
+      ...DEFAULT_PROFILE_SETTINGS,
+      selectedRanges: ['subtraction-within-20' as const],
+      selectedPatterns: ['a-minus-b-equals-blank' as const],
+      questionCount: 5 as const,
+      subtractionLearningStage: 'take-ones' as const,
+    }
+
+    const first = applyLearningResult(storage, {
+      profileId: pid,
+      settings: routeSettings,
+      result: result({ firstTry: true }),
+    })
+    expect(first.subtractionStageChange).toBeNull()
+    expect(storage.profiles[0].subtractionStage).toBe('take-ones')
+
+    const second = applyLearningResult(storage, {
+      profileId: pid,
+      settings: routeSettings,
+      result: result({ firstTry: true, id: 'route-2' }),
+    })
+    expect(second.subtractionStageChange).toEqual({
+      from: 'take-ones',
+      to: 'break-ten',
+    })
+    expect(storage.profiles[0].subtractionStage).toBe('break-ten')
   })
 
   it('完成练习会获得路线邮票并累计到站次数', () => {

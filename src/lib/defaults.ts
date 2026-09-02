@@ -10,6 +10,7 @@ import {
 } from './carriages'
 import { genId } from './id'
 import { todayStr } from './date'
+import { DEFAULT_SUBTRACTION_STAGE } from './subtractionLearningPath'
 
 // 默认难度阶段（见 adaptiveDifficulty 的 LADDER）
 export const DEFAULT_LEVEL = 'add10-basic'
@@ -64,6 +65,7 @@ export function createProfile(
     avatar: partial.avatar,
     birthYear: partial.birthYear,
     currentLevel: partial.currentLevel ?? DEFAULT_LEVEL,
+    subtractionStage: partial.subtractionStage ?? DEFAULT_SUBTRACTION_STAGE,
     preferredTheme: partial.preferredTheme ?? 'car',
     createdAt: partial.createdAt ?? new Date().toISOString(),
   }

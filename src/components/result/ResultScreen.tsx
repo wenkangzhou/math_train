@@ -9,6 +9,10 @@ import { ResultSummary } from './ResultSummary'
 import { ResultActions } from './ResultActions'
 import { ArrivalRewardCard } from './ArrivalRewardCard'
 import { getDifficultyLabel } from '@/lib/adaptiveDifficulty'
+import {
+  getSubtractionStage,
+  type SubtractionStageChange,
+} from '@/lib/subtractionLearningPath'
 
 interface ResultScreenProps {
   result: PracticeResult
@@ -16,6 +20,7 @@ interface ResultScreenProps {
   newlyUnlocked: Carriage[]
   routeReward: RouteReward | null
   difficultyChange: { from: string; to: string } | null
+  subtractionStageChange: SubtractionStageChange | null
   onReplay: () => void
   onPracticeWrong: () => void
   onReconfigure: () => void
@@ -27,6 +32,7 @@ export function ResultScreen({
   newlyUnlocked,
   routeReward,
   difficultyChange,
+  subtractionStageChange,
   onReplay,
   onPracticeWrong,
   onReconfigure,
@@ -107,6 +113,29 @@ export function ResultScreen({
               </p>
             </motion.div>
           )}
+
+          {subtractionStageChange && (() => {
+            const nextStage = getSubtractionStage(subtractionStageChange.to)
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 220 }}
+                className="rounded-[24px] bg-gradient-to-r from-sky-100 to-cyan-100 p-4 text-center ring-2 ring-sky-300"
+                data-testid="subtraction-stage-up"
+              >
+                <div className="text-4xl" aria-hidden="true">
+                  🚂 ➜ {nextStage.emoji}
+                </div>
+                <p className="mt-1 text-sm font-extrabold text-sky-deep">
+                  新关卡到站啦！
+                </p>
+                <p className="mt-0.5 font-digit text-xl font-black text-slate-700">
+                  第 {nextStage.step} 关 · {nextStage.example}
+                </p>
+              </motion.div>
+            )
+          })()}
 
           <ResultSummary result={result} />
 

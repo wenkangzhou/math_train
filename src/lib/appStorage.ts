@@ -43,6 +43,12 @@ import {
 import { dayDiff, todayStr } from './date'
 import { genId } from './id'
 import { nextAdaptiveLevel } from './adaptiveDifficulty'
+import {
+  DEFAULT_SUBTRACTION_STAGE,
+  isSubtractionLearningStage,
+  nextSubtractionStage,
+  type SubtractionStageChange,
+} from './subtractionLearningPath'
 
 function hasLS(): boolean {
   return typeof localStorage !== 'undefined'
@@ -88,9 +94,14 @@ export function normalizeAppStorage(raw: unknown): AppStorage {
   if (!raw || typeof raw !== 'object') return base
 
   const r = raw as Partial<AppStorage>
-  const profiles = asArray<ChildProfile>(r.profiles).filter(
-    (p) => p && typeof p.id === 'string',
-  )
+  const profiles = asArray<ChildProfile>(r.profiles)
+    .filter((p) => p && typeof p.id === 'string')
+    .map((profile) => ({
+      ...profile,
+      subtractionStage: isSubtractionLearningStage(profile.subtractionStage)
+        ? profile.subtractionStage
+        : DEFAULT_SUBTRACTION_STAGE,
+    }))
 
   // 没有任何合法档案 → 回退到全新存储
   if (profiles.length === 0) return base
@@ -331,12 +342,14 @@ export interface LearningResultUpdate {
   newlyUnlocked: Carriage[]
   routeReward: RouteReward
   difficultyChange: DifficultyChange | null
+  subtractionStageChange: SubtractionStageChange | null
 }
 
 export interface AppliedLearningRewards {
   newlyUnlocked: Carriage[]
   routeReward: RouteReward
   difficultyChange: DifficultyChange | null
+  subtractionStageChange: SubtractionStageChange | null
 }
 
 // 纯数据更新，便于单测；会原地更新传入的 storage。
@@ -396,6 +409,19 @@ export function applyLearningResult(
     if (nextLevel !== difficultyStart) {
       difficultyChange = { from: difficultyStart, to: nextLevel }
     }
+  }
+
+  let subtractionStageChange: SubtractionStageChange | null = null
+  if (
+    sessionKind === 'regular' &&
+    profile &&
+    settings.subtractionLearningStage &&
+    settings.subtractionLearningStage === profile.subtractionStage
+  ) {
+    const from = profile.subtractionStage
+    const to = nextSubtractionStage(from, history)
+    profile.subtractionStage = to
+    if (to !== from) subtractionStageChange = { from, to }
   }
   storage.historyByProfile[profileId] = history.slice(0, 200)
 
@@ -495,7 +521,12 @@ export function applyLearningResult(
     .filter((id) => !beforeUnlocked.has(id))
     .map(getCarriage)
     .filter((item): item is Carriage => Boolean(item))
-  return { newlyUnlocked, routeReward, difficultyChange }
+  return {
+    newlyUnlocked,
+    routeReward,
+    difficultyChange,
+    subtractionStageChange,
+  }
 }
 
 export function recordLearningResult(

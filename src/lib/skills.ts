@@ -51,6 +51,7 @@ export const SKILL_META: Record<SkillTag, SkillMeta> = {
   'sub20-no-borrow': { label: '不退位减法', group: 'sub20', op: 'subtraction', range: 20, sub: (a, b, r) => a >= 11 && a <= 20 && b >= 1 && ones(a) >= ones(b) && r >= 0 && b < a },
   'sub20-borrow': { label: '退位减法', group: 'sub20', op: 'subtraction', range: 20, sub: (a, b, r) => a >= 11 && a <= 20 && b >= 2 && b <= 9 && ones(a) < b && r >= 0 },
   'sub20-break-ten': { label: '破十法', group: 'sub20', op: 'subtraction', range: 20, sub: (a, b, r) => a >= 11 && a <= 18 && b >= 2 && b <= 9 && ones(a) < b && r >= 1 && r <= 9 },
+  'sub20-take-ten': { label: '先减一整组十', group: 'sub20', op: 'subtraction', range: 20, sub: (a, b, r) => a >= 11 && a <= 20 && b >= 10 && b < a && r >= 1 && r <= 9 },
   'sub20-inverse': { label: '与加法互逆', group: 'sub20', op: 'subtraction', range: 20, sub: (a, b, r) => a >= 11 && a <= 20 && b >= 1 && r >= 1 && b < a },
 }
 

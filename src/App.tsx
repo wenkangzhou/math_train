@@ -32,6 +32,12 @@ import {
 } from '@/lib/defaults'
 import { isReviewDue } from '@/lib/spacedReview'
 import { settingsForDifficulty } from '@/lib/adaptiveDifficulty'
+import {
+  DEFAULT_SUBTRACTION_STAGE,
+  settingsForSubtractionStage,
+  skillSequenceForSubtractionStage,
+  type SubtractionStageChange,
+} from '@/lib/subtractionLearningPath'
 
 type Screen = 'setup' | 'practice' | 'result'
 type SessionKind = 'regular' | 'review'
@@ -50,6 +56,7 @@ export default function App() {
   const [newlyUnlocked, setNewlyUnlocked] = useState<Carriage[]>([])
   const [routeReward, setRouteReward] = useState<RouteReward | null>(null)
   const [difficultyChange, setDifficultyChange] = useState<{ from: string; to: string } | null>(null)
+  const [subtractionStageChange, setSubtractionStageChange] = useState<SubtractionStageChange | null>(null)
   const [sessionKind, setSessionKind] = useState<SessionKind>('regular')
 
   const profileId =
@@ -60,10 +67,25 @@ export default function App() {
   const wrongRecords = learningData.wrongQuestionsByProfile[profileId] ?? []
   const practiceHistory = learningData.historyByProfile[profileId] ?? []
   const currentLevel = learningData.profiles.find((profile) => profile.id === profileId)?.currentLevel ?? DEFAULT_LEVEL
+  const currentSubtractionStage = learningData.profiles.find(
+    (profile) => profile.id === profileId,
+  )?.subtractionStage ?? DEFAULT_SUBTRACTION_STAGE
 
   const generateForSettings = useCallback(
-    (nextSettings: ActiveSettings) =>
-      generateQuestions(settingsForDifficulty(nextSettings, currentLevel)),
+    (nextSettings: ActiveSettings) => {
+      const stageId = nextSettings.subtractionLearningStage
+      if (stageId) {
+        const routed = settingsForSubtractionStage(nextSettings, stageId)
+        return generateQuestions({
+          ...routed,
+          skillSequence: skillSequenceForSubtractionStage(
+            stageId,
+            routed.questionCount,
+          ),
+        })
+      }
+      return generateQuestions(settingsForDifficulty(nextSettings, currentLevel))
+    },
     [currentLevel],
   )
 
@@ -84,6 +106,7 @@ export default function App() {
       setNewlyUnlocked([])
       setRouteReward(null)
       setDifficultyChange(null)
+      setSubtractionStageChange(null)
       setSessionKind(kind)
       setScreen('practice')
     },
@@ -125,6 +148,15 @@ export default function App() {
       setNewlyUnlocked(learningUpdate.newlyUnlocked)
       setRouteReward(learningUpdate.routeReward)
       setDifficultyChange(learningUpdate.difficultyChange)
+      setSubtractionStageChange(learningUpdate.subtractionStageChange)
+      if (learningUpdate.subtractionStageChange) {
+        setSettings((current) =>
+          settingsForSubtractionStage(
+            current,
+            learningUpdate.subtractionStageChange!.to,
+          ),
+        )
+      }
     }
     setResult(res)
     setScreen('result')
@@ -190,6 +222,7 @@ export default function App() {
               reward={reward}
               wrongRecords={wrongRecords}
               currentLevel={currentLevel}
+              currentSubtractionStage={currentSubtractionStage}
               onStart={handleStart}
               onPracticeWrong={handlePracticeSavedWrong}
               onSelectHead={handleSelectHead}
@@ -229,6 +262,7 @@ export default function App() {
               newlyUnlocked={newlyUnlocked}
               routeReward={routeReward}
               difficultyChange={difficultyChange}
+              subtractionStageChange={subtractionStageChange}
               onReplay={handleReplay}
               onPracticeWrong={handlePracticeWrong}
               onReconfigure={handleReconfigure}

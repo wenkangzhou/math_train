@@ -262,6 +262,8 @@ function defaultPatternsForOp(op: Operation): QuestionPattern[] {
 export function generateQuestions(
   settings: PracticeSettings & {
     skillTags?: SkillTag[]
+    // 学习路线可为每道题指定技能，保证一趟内覆盖需要的方法。
+    skillSequence?: SkillTag[]
     questionFormats?: QuestionFormat[]
     adaptiveNumberDifficulty?: number
   },
@@ -287,7 +289,14 @@ export function generateQuestions(
     const baseDifficulty = settings.adaptiveNumberDifficulty ?? 0.8
     const progress = questionCount > 1 ? i / (questionCount - 1) : 0
     const difficulty = Math.min(1, baseDifficulty + progress * 0.2)
-    let q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty, skillTags })
+    const sequencedSkill = settings.skillSequence?.[i]
+    const skillsForQuestion = sequencedSkill ? [sequencedSkill] : skillTags
+    let q = generateQuestion({
+      ranges,
+      patterns: selectedPatterns,
+      difficulty,
+      skillTags: skillsForQuestion,
+    })
 
     // 尝试避免与上一题相同、以及整套重复
     let guard = 0
@@ -295,7 +304,12 @@ export function generateQuestions(
       guard < 30 &&
       (signatureOf(q) === lastSig || seen.has(signatureOf(q)))
     ) {
-      q = generateQuestion({ ranges, patterns: selectedPatterns, difficulty, skillTags })
+      q = generateQuestion({
+        ranges,
+        patterns: selectedPatterns,
+        difficulty,
+        skillTags: skillsForQuestion,
+      })
       guard++
     }
 

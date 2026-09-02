@@ -60,7 +60,15 @@ export type SkillTag =
   | 'sub20-no-borrow'
   | 'sub20-borrow'
   | 'sub20-break-ten'
+  | 'sub20-take-ten'
   | 'sub20-inverse'
+
+// 20 以内减法的儿童学习路线。与通用自动难度分开，避免互相覆盖。
+export type SubtractionLearningStageId =
+  | 'take-ones'
+  | 'break-ten'
+  | 'take-ten'
+  | 'mixed'
 
 export interface Question {
   id: string
@@ -98,6 +106,8 @@ export interface PracticeSettings {
   questionCount: QuestionCount
   autoShowVisualHint: boolean
   showHintAfterWrongAnswer: boolean
+  // 仅在“20 以内减法学习路线”中写入；普通练习保持 undefined。
+  subtractionLearningStage?: SubtractionLearningStageId
 }
 
 export interface AnswerRecord {

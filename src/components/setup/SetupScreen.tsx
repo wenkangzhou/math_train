@@ -21,6 +21,7 @@ import type {
   RangeType,
   SkillTag,
   StoredHistory,
+  SubtractionLearningStageId,
 } from '@/types/math'
 import type { RewardState } from '@/types/rewards'
 import type { SpeechRate } from '@/types/profile'
@@ -49,6 +50,12 @@ import {
 } from '@/lib/skills'
 import { setSoundEnabled as setGlobalSoundEnabled } from '@/lib/sound'
 import { cancelSpeech, primeSpeech } from '@/lib/speech'
+import {
+  getSubtractionStage,
+  isSubtractionPathEligible,
+  settingsForSubtractionStage,
+  SUBTRACTION_STAGES,
+} from '@/lib/subtractionLearningPath'
 
 export type StartSettings = PracticeSettings & {
   questionFormats: QuestionFormat[]
@@ -70,6 +77,7 @@ interface SetupScreenProps {
   reward: RewardState
   wrongRecords: WrongQuestionRecord[]
   currentLevel: string
+  currentSubtractionStage: SubtractionLearningStageId
   onStart: (settings: StartSettings) => void
   onPracticeWrong: () => void
   onSelectHead: (id: string) => void
@@ -92,6 +100,7 @@ export function SetupScreen({
   reward,
   wrongRecords,
   currentLevel,
+  currentSubtractionStage,
   onStart,
   onPracticeWrong,
   onSelectHead,
@@ -234,6 +243,15 @@ export function SetupScreen({
     return true
   }, [ranges.length, hasAddition, hasSubtraction, addSelected.length, subSelected.length])
 
+  const subtractionPathActive = isSubtractionPathEligible({
+    selectedRanges: ranges,
+    selectedPatterns: patterns,
+    skillTags,
+    adaptiveDifficulty,
+  })
+  const subtractionStage = getSubtractionStage(currentSubtractionStage)
+  const tripQuestionCount: QuestionCount = subtractionPathActive ? 5 : count
+
   const handleStart = () => {
     if (!canStart) return
     // iPad WebKit 要求在真实点击手势中激活语音；关闭时则清掉可能残留的试听。
@@ -244,7 +262,7 @@ export function SetupScreen({
       ADDITION_PATTERNS.includes(p) ? hasAddition : hasSubtraction,
     )
     const effectiveSkills = compatibleSkillTags(skillTags, ranges)
-    onStart({
+    const nextSettings: StartSettings = {
       selectedRanges: ranges,
       selectedPatterns: effectivePatterns,
       questionCount: count,
@@ -259,7 +277,13 @@ export function SetupScreen({
       speechVoiceId,
       adaptiveDifficulty,
       allowHarder,
-    })
+      subtractionLearningStage: undefined,
+    }
+    onStart(
+      subtractionPathActive
+        ? settingsForSubtractionStage(nextSettings, currentSubtractionStage)
+        : nextSettings,
+    )
   }
 
   const totalQuestions = history.entries.reduce(
@@ -287,7 +311,7 @@ export function SetupScreen({
             recentRewardTrips.length,
         ),
       )
-    : count
+    : tripQuestionCount
   const enabledHelperCount = [
     autoShowVisualHint,
     showHintAfterWrong,
@@ -352,7 +376,7 @@ export function SetupScreen({
           <div className="relative mt-5 rounded-3xl bg-white/15 p-4 ring-1 ring-white/20 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 text-sm font-extrabold">
-                <Target size={18} /> 这一趟做 {count} 题
+                <Target size={18} /> 这一趟做 {tripQuestionCount} 题
               </span>
               <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-300 px-2.5 py-1 text-xs font-extrabold text-amber-900">
                 做完到站
@@ -405,7 +429,9 @@ export function SetupScreen({
               <span className="min-w-0 flex-1">
                 <span className="block text-2xl font-extrabold leading-none">开始做题</span>
                 <span className="mt-1.5 block whitespace-nowrap text-xs font-bold text-white/85">
-                  点这里发车 · {rangeSummary} · {count} 题
+                  {subtractionPathActive
+                    ? `点这里发车 · 第 ${subtractionStage.step} 关 · ${tripQuestionCount} 题`
+                    : `点这里发车 · ${rangeSummary} · ${tripQuestionCount} 题`}
                 </span>
               </span>
             </motion.button>
@@ -478,10 +504,68 @@ export function SetupScreen({
 
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 ipad-land:grid-cols-2">
               <TaskSummary emoji="🎯" label="练习内容" value={`${rangeSummary}${operationSummary}`} />
-              <TaskSummary emoji="🔢" label="这一趟" value={`${count} 道题`} />
-              <TaskSummary emoji="🖼️" label="题目样子" value={formatSummary} />
-              <TaskSummary emoji="🔊" label="学习帮手" value={`已开启 ${enabledHelperCount} 项`} />
+              <TaskSummary emoji="🔢" label="这一趟" value={`${tripQuestionCount} 道题`} />
+              <TaskSummary
+                emoji="🖼️"
+                label="题目样子"
+                value={subtractionPathActive ? '算式 + 十格图' : formatSummary}
+              />
+              <TaskSummary
+                emoji="🔊"
+                label="学习帮手"
+                value={subtractionPathActive ? '随关卡慢慢减少' : `已开启 ${enabledHelperCount} 项`}
+              />
             </div>
+
+            {subtractionPathActive && (
+              <div
+                className="mt-4 rounded-[24px] bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5 ring-2 ring-sky-100"
+                data-testid="subtraction-learning-path"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-extrabold text-sky-deep/70">
+                      20 以内减法 · 第 {subtractionStage.step} 关
+                    </p>
+                    <p className="mt-0.5 font-digit text-lg font-black text-slate-700">
+                      {subtractionStage.emoji} {subtractionStage.example}
+                    </p>
+                  </div>
+                  <span className="whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-sky-deep shadow-sm">
+                    稳稳答对 2 趟
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-1.5" aria-label="减法学习路线进度">
+                  {SUBTRACTION_STAGES.map((stage) => {
+                    const passed = stage.step < subtractionStage.step
+                    const current = stage.id === subtractionStage.id
+                    return (
+                      <div key={stage.id} className="min-w-0 text-center">
+                        <div
+                          className={[
+                            'mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl ring-2 transition',
+                            current
+                              ? 'bg-amber-300 ring-amber-400 shadow-md'
+                              : passed
+                                ? 'bg-grass/20 ring-grass/40'
+                                : 'bg-white ring-slate-200',
+                          ].join(' ')}
+                          aria-current={current ? 'step' : undefined}
+                        >
+                          {passed ? '✓' : stage.emoji}
+                        </div>
+                        <p className={[
+                          'mt-1 truncate text-[11px] font-extrabold',
+                          current ? 'text-sky-deep' : 'text-slate-400',
+                        ].join(' ')}>
+                          {stage.example}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 flex flex-col items-stretch justify-between gap-3 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:flex-row sm:items-center">
               <p className="text-base font-extrabold text-amber-800">
@@ -533,18 +617,31 @@ export function SetupScreen({
                   </SectionCard>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <SectionCard title="3. 做几道题？">
-                      <QuestionCountSelector value={count} onChange={setCount} />
+                    <SectionCard
+                      title="3. 做几道题？"
+                      hint={subtractionPathActive ? '减法路线每趟固定 5 题' : undefined}
+                    >
+                      <QuestionCountSelector
+                        value={tripQuestionCount}
+                        disabled={subtractionPathActive}
+                        onChange={setCount}
+                      />
                     </SectionCard>
 
-                    <SectionCard title="4. 题目怎么出现？" hint="可多选">
+                    <SectionCard
+                      title="4. 题目怎么出现？"
+                      hint={subtractionPathActive ? '路线固定为算式 + 十格图' : '可多选'}
+                    >
                       <div className="grid grid-cols-3 gap-2">
                         {FORMAT_OPTIONS.map((f) => {
-                          const active = formats.includes(f.id)
+                          const active = subtractionPathActive
+                            ? f.id === 'equation'
+                            : formats.includes(f.id)
                           return (
                             <button
                               key={f.id}
                               type="button"
+                              disabled={subtractionPathActive}
                               aria-pressed={active}
                               onClick={() => toggleFormat(f.id)}
                               className={[
@@ -552,6 +649,7 @@ export function SetupScreen({
                                 active
                                   ? 'border-sky bg-sky-soft/50 text-sky-deep shadow-sm'
                                   : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-sky/40',
+                                subtractionPathActive ? 'cursor-not-allowed opacity-65' : '',
                               ].join(' ')}
                             >
                               <span aria-hidden="true">{f.emoji}</span>

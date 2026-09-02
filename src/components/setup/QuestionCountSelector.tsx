@@ -6,11 +6,13 @@ const COUNTS: QuestionCount[] = [5, 10, 20]
 interface QuestionCountSelectorProps {
   value: QuestionCount
   onChange: (value: QuestionCount) => void
+  disabled?: boolean
 }
 
 export function QuestionCountSelector({
   value,
   onChange,
+  disabled = false,
 }: QuestionCountSelectorProps) {
   return (
     <div className="flex gap-3 sm:gap-4">
@@ -20,6 +22,7 @@ export function QuestionCountSelector({
           <motion.button
             key={count}
             type="button"
+            disabled={disabled}
             whileTap={{ scale: 0.93 }}
             onClick={() => onChange(count)}
             aria-pressed={active}
@@ -29,6 +32,11 @@ export function QuestionCountSelector({
               active
                 ? 'bg-sky text-white shadow-soft'
                 : 'bg-slate-50 text-slate-500 ring-2 ring-slate-200 hover:bg-slate-100',
+              disabled
+                ? active
+                  ? 'cursor-not-allowed'
+                  : 'cursor-not-allowed opacity-45'
+                : '',
             ].join(' ')}
           >
             {count}

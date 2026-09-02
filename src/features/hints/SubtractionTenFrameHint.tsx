@@ -14,6 +14,8 @@ import {
 
 interface SubtractionTenFrameHintProps {
   question: Question
+  // 熟练阶段先让孩子自己观察；答错后可重新显示待拿走格子的完整高亮。
+  showTargetPreview?: boolean
 }
 
 function TenFrame({
@@ -194,6 +196,7 @@ function RemovalButton({
 
 export function SubtractionTenFrameHint({
   question,
+  showTargetPreview = true,
 }: SubtractionTenFrameHintProps) {
   const reduce = useReducedMotion()
   const plan = useMemo(
@@ -210,8 +213,8 @@ export function SubtractionTenFrameHint({
   const done = plan.remove === 0 || completedSteps >= plan.steps.length
   const nextStep = done ? null : plan.steps[completedSteps]
   const pendingRemoval = useMemo(
-    () => new Set(nextStep?.removeIndexes ?? []),
-    [nextStep],
+    () => new Set(showTargetPreview ? (nextStep?.removeIndexes ?? []) : []),
+    [nextStep, showTargetPreview],
   )
   const targetGroup = removalTargetGroup(nextStep)
   const remaining = remainingAfterStep(plan, completedSteps)
@@ -251,6 +254,7 @@ export function SubtractionTenFrameHint({
     <div
       className="rounded-[26px] bg-white/95 p-3 shadow-soft ipad-land:p-2.5"
       data-testid="subtraction-ten-frame"
+      data-preview-removal={showTargetPreview}
     >
       <div
         className="mb-2 flex items-center justify-center gap-2 font-digit font-black ipad-land:mb-1.5"

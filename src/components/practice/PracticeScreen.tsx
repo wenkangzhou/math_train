@@ -31,6 +31,7 @@ import {
   recommendedHintMethod,
   type GuidedHintMethod,
 } from '@/lib/hintStrategy'
+import { getSubtractionStage } from '@/lib/subtractionLearningPath'
 
 type HintPanel = 'none' | GuidedHintMethod
 
@@ -310,6 +311,11 @@ export function PracticeScreen({
   const pictorialSubtractionHelp =
     showHint === 'tenframe' && question.operation === 'subtraction'
   const offerAnotherMethod = canChangeHintMethod(question)
+  const subtractionStage = settings.subtractionLearningStage
+    ? getSubtractionStage(settings.subtractionLearningStage)
+    : null
+  const showSubtractionTargetPreview =
+    subtractionStage === null || subtractionStage.previewRemoval || attempts > 0
   const helpTitle = showHint === 'tenframe'
     ? question.operation === 'addition'
       ? '🔟 凑成十再相加'
@@ -445,6 +451,7 @@ export function PracticeScreen({
                       <SubtractionTenFrameHint
                         key={question.id}
                         question={question}
+                        showTargetPreview={showSubtractionTargetPreview}
                       />
                     )
                   )}

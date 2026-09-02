@@ -4,6 +4,7 @@ import type {
   PracticeSettings,
   QuestionFormat,
   SkillTag,
+  SubtractionLearningStageId,
   VisualTheme,
 } from './math'
 
@@ -33,6 +34,8 @@ export interface ChildProfile {
   birthYear?: number
   // 当前难度阶段 id（见 lib/adaptiveDifficulty 的 LADDER）
   currentLevel: string
+  // 20 以内减法独立学习路线，不受通用自动难度开关影响。
+  subtractionStage: SubtractionLearningStageId
   preferredTheme: VisualTheme
   createdAt: string
 }
